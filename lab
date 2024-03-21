@@ -1,0 +1,11 @@
+#!/bin/sh
+
+PORT=8880
+if [ $# -eq 0 ]; then
+    echo "Port is not set, use default 8880"
+    echo "> lab [<port>]"
+else 
+    PORT=$1
+fi
+
+jupyter lab --ip=0.0.0.0 --port=$PORT --no-browser
