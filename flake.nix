@@ -26,16 +26,26 @@
           inherit system;
           config = {
             allowUnfree = true;
+            cudaSupport = false;
+          };
+        };
+        pkgs-cuda = import nixpkgs {
+          inherit system;
+          config = {
+            allowUnfree = true;
             cudaSupport = true;
           };
           overlays = [(import ./overlays.nix)];
         };
 
-        python = pkgs.python3;
-        pythonPackages = pkgs.python3Packages;
+        python = pkgs.python310;
+        pythonPackages = pkgs.python310Packages;
+        pythonCudaPackages = pkgs-cuda.python310Packages;
         cudaPackages = pkgs.cudaPackages;
 
         packages = [
+          (pkgs.writeShellScriptBin "lab" "jupyter lab")
+
           pkgs.cachix
           pkgs.alejandra
           pkgs.nodejs
@@ -66,9 +76,9 @@
           pythonPackages.seaborn
 
           # ML
-          pythonPackages.torch-bin
-          pythonPackages.torchvision-bin
-          pythonPackages.torchaudio-bin
+          pythonCudaPackages.torch-bin
+          pythonCudaPackages.torchvision-bin
+          pythonCudaPackages.torchaudio-bin
           pythonPackages.torchmetrics
           pythonPackages.torchinfo
           pythonPackages.pytorch-lightning
