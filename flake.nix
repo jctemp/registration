@@ -35,7 +35,6 @@
             allowUnfree = true;
             cudaSupport = true;
           };
-          overlays = [(import ./overlays.nix)];
         };
 
         python = pkgs.python310;
@@ -86,6 +85,8 @@
           pythonPackages.torchio
           pythonPackages.monai
           pythonPackages.wandb
+          pythonPackages.timm
+          pythonPackages.ml-collections
         ];
       in {
         formatter = pkgs.alejandra;
