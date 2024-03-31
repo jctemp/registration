@@ -85,6 +85,7 @@
           pythonPackages.torchio
           pythonPackages.monai
           pythonPackages.wandb
+          pythonPackages.natsort
           pythonPackages.timm
           pythonPackages.ml-collections
         ];
