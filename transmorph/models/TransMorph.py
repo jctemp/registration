@@ -272,7 +272,7 @@ class PatchMerging(nn.Module):
         """
         B, L, C = x.shape
         assert L == H * W * T, "input feature has wrong size"
-        assert H % 2 == 0 and W % 2 == 0 and T % 2 == 0, f"x size ({H}*{W}) are not even."
+        assert H % 2 == 0 and W % 2 == 0 and T % 2 == 0, f"x size ({H}*{W}*{T}) are not even."
 
         x = x.view(B, H, W, T, C)
 
@@ -721,6 +721,8 @@ class DecoderBlock(nn.Module):
             use_batchnorm=True,
     ):
         super().__init__()
+        self.in_channels = in_channels
+        self.skip_channels = skip_channels
         self.conv1 = Conv3dReLU(
             in_channels + skip_channels,
             out_channels,
@@ -739,6 +741,10 @@ class DecoderBlock(nn.Module):
 
     def forward(self, x, skip=None):
         x = self.up(x)
+
+        # print(f"in_channels = {self.in_channels}, skip_channels = {self.skip_channels}")
+        # print(f"x = {x.shape}, skip = {skip.shape}")
+        
         if skip is not None:
             x = torch.cat([x, skip], dim=1)
         x = self.conv1(x)
@@ -795,6 +801,7 @@ class SpatialTransformer(nn.Module):
             new_locs = new_locs.permute(0, 2, 3, 4, 1)
             new_locs = new_locs[..., [2, 1, 0]]
 
+        # print(f"src = {src.shape}, new_locs = {new_locs.shape}")
         return nnf.grid_sample(src, new_locs, align_corners=True, mode=self.mode)
 
 class TransMorph(nn.Module):
@@ -830,9 +837,11 @@ class TransMorph(nn.Module):
         self.up1 = DecoderBlock(embed_dim*4, embed_dim*2, skip_channels=embed_dim*2 if if_transskip else 0, use_batchnorm=False)  # 384, 20, 20, 64
         self.up2 = DecoderBlock(embed_dim*2, embed_dim, skip_channels=embed_dim if if_transskip else 0, use_batchnorm=False)  # 384, 40, 40, 64
         self.up3 = DecoderBlock(embed_dim, embed_dim//2, skip_channels=embed_dim//2 if if_convskip else 0, use_batchnorm=False)  # 384, 80, 80, 128
-        self.up4 = DecoderBlock(embed_dim//2, config.reg_head_chan, skip_channels=config.reg_head_chan if if_convskip else 0, use_batchnorm=False)  # 384, 160, 160, 256
-        self.c1 = Conv3dReLU(2, embed_dim//2, 3, 1, use_batchnorm=False)
-        self.c2 = Conv3dReLU(2, config.reg_head_chan, 3, 1, use_batchnorm=False)
+        self.up4 = DecoderBlock(embed_dim//2, config.reg_head_chan, skip_channels=3 if if_convskip else 0, use_batchnorm=False)  # 384, 160, 160, 256
+        self.c1 = Conv3dReLU(config.in_chans, embed_dim//2, 3, 1, use_batchnorm=False)
+        self.c2 = Conv3dReLU(config.in_chans, embed_dim//2, 3, 1, use_batchnorm=False)
+        #in_channels, out_channels, kernel_size, padding=0, stride=1, use_batchnorm=True,
+        
         self.reg_head = RegistrationHead(
             in_channels=config.reg_head_chan,
             out_channels=3,
@@ -842,7 +851,9 @@ class TransMorph(nn.Module):
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):
-        source = x[:, 0:1, :, :]
+        # (B, C, W, H, t) e.g. [1, 1, 256, 256, 192]
+        # source = x[:, 0:1, :, :]
+        source = x.clone()
         if self.if_convskip:
             x_s0 = x.clone()
             x_s1 = self.avg_pool(x)

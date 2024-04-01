@@ -304,7 +304,7 @@ def get_3DTransMorphTiny_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 6
     config.depths = (2, 2, 4, 2)
     config.num_heads = (2, 2, 4, 4)
@@ -321,5 +321,5 @@ def get_3DTransMorphTiny_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
