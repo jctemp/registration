@@ -41,7 +41,7 @@ def get_3DTransMorph_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -58,7 +58,7 @@ def get_3DTransMorph_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphNoRelativePosEmbd_config():
@@ -69,7 +69,7 @@ def get_3DTransMorphNoRelativePosEmbd_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -86,7 +86,7 @@ def get_3DTransMorphNoRelativePosEmbd_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphSin_config():
@@ -97,7 +97,7 @@ def get_3DTransMorphSin_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -114,7 +114,7 @@ def get_3DTransMorphSin_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     config.pos_embed_method = 'relative'
     return config
 
@@ -126,7 +126,7 @@ def get_3DTransMorphLrn_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -143,7 +143,7 @@ def get_3DTransMorphLrn_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphNoConvSkip_config():
@@ -157,7 +157,7 @@ def get_3DTransMorphNoConvSkip_config():
     config.if_transskip = True
     config.if_convskip = False
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -174,7 +174,7 @@ def get_3DTransMorphNoConvSkip_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     config.pos_embed_method = 'relative'
     return config
 
@@ -189,7 +189,7 @@ def get_3DTransMorphNoTransSkip_config():
     config.if_transskip = False
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -206,7 +206,7 @@ def get_3DTransMorphNoTransSkip_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphNoSkip_config():
@@ -220,7 +220,7 @@ def get_3DTransMorphNoSkip_config():
     config.if_transskip = False
     config.if_convskip = False
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 96
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 8, 8)
@@ -237,7 +237,7 @@ def get_3DTransMorphNoSkip_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphLarge_config():
@@ -248,7 +248,7 @@ def get_3DTransMorphLarge_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 128
     config.depths = (2, 2, 12, 2)
     config.num_heads = (4, 4, 8, 16)
@@ -265,7 +265,7 @@ def get_3DTransMorphLarge_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphSmall_config():
@@ -276,7 +276,7 @@ def get_3DTransMorphSmall_config():
     config.if_transskip = True
     config.if_convskip = True
     config.patch_size = 4
-    config.in_chans = 2
+    config.in_chans = 1
     config.embed_dim = 48
     config.depths = (2, 2, 4, 2)
     config.num_heads = (4, 4, 4, 4)
@@ -293,7 +293,7 @@ def get_3DTransMorphSmall_config():
     config.use_checkpoint = False
     config.out_indices = (0, 1, 2, 3)
     config.reg_head_chan = 16
-    config.img_size = (160, 192, 224)
+    config.img_size = (256, 256, 192)
     return config
 
 def get_3DTransMorphTiny_config():

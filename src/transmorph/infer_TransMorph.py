@@ -78,7 +78,7 @@ def main():
             line = utils.dice_val_substruct(def_out.long(), x_seg.long(), stdy_idx)
             line = line #+ ',' + str(np.sum(jac_det < 0) / np.prod(tar.shape))
             out = def_out.detach().cpu().numpy()[0, 0, :, :, :]
-            print('det < 0: {}'.format(np.sum(jac_det <= 0)/np.prod(tar.shape)))
+            print('det < 0: {}'.format(np.sum(jac_det <= 0) / np.prod(tar.shape)))
             csv_writter(line, 'experiments/' + model_folder[:-1])
             eval_det.update(np.sum(jac_det <= 0) / np.prod(tar.shape), x.size(0))
             dsc_trans = utils.dice_val(def_out.long(), x_seg.long(), 46)

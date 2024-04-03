@@ -160,3 +160,7 @@ cython_debug/
 #.idea/
 .direnv
 .virtual_documents
+
+log
+wandb
+model_weights
