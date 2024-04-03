@@ -33,7 +33,7 @@ class SpatialTransformer(nn.Module):
         grids = torch.meshgrid(vectors)
         grid = torch.stack(grids)
         grid = torch.unsqueeze(grid, 0)
-        grid = grid.type(torch.FloatTensor).cuda()
+        grid = grid.type(torch.FloatTensor)
 
         # registering the grid as a buffer cleanly moves it to the GPU, but it also
         # adds it to the state dict. this is annoying since everything in the state dict
@@ -68,7 +68,7 @@ class register_model(nn.Module):
         self.spatial_trans = SpatialTransformer(img_size, mode)
 
     def forward(self, x):
-        img = x[0].cuda()
-        flow = x[1].cuda()
+        img = x[0]
+        flow = x[1]
         out = self.spatial_trans(img, flow)
         return out
