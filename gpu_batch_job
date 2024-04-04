@@ -6,9 +6,9 @@
 #SBATCH --time=7-00:00:00
 #
 #SBATCH --cpus-per-task=16
-#SBATCH --mem=32GB
+#SBATCH --mem=48GB
 #SBATCH --partition leinegpu_long
-#SBATCH --gres=gpu:1
+#SBATCH --gres=gpu:2
 #SBATCH --mail-user=jamie.temple@stud.hs-hannover.de
 #SBATCH --mail-type=ALL
 
@@ -16,6 +16,6 @@ module load Python/3.10.4
 cd /hpc/scratch/project/jvc-lab/stud/registration
 source .venv/bin/activate
 cd src
-python main.py \
+python main.py train \
     --devices 2 \
-    --max_epochs 100
+    --num_workers 8

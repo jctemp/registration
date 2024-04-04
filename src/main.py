@@ -21,8 +21,7 @@ def train(args):
     torch.set_float32_matmul_precision("high")
 
     # Hyperparameters
-    config_name = "TransMorph"
-    criterion_ident = "mse:1-l2:1"
+    config_name = "TransMorph-Lrn"
     criterion_image = (nn.MSELoss(), 1)
     criterion_flow = (Grad3d(penalty="l2"), 1)
     optimizer = torch.optim.Adam
@@ -48,9 +47,8 @@ def train(args):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",
-        filename=f"{config_name}-{criterion_ident}-" + "{epoch}-{val_loss:.2f}",
+        filename=f"{config_name}-" + "{epoch}-{val_loss:.2f}",
     )
-    checkpoint_callback.CHECKPOINT_EQUALS_CHAR = ":"
 
     trainer = pl.Trainer(
         max_epochs=max_epoch,
@@ -61,7 +59,7 @@ def train(args):
         benchmark=False,
         logger=wandb_logger,
         callbacks=[checkpoint_callback],
-        precision=16,
+        precision="16-mixed",
     )
 
     num_workers = 1 if args.num_workers is None else args.num_workers
@@ -74,12 +72,16 @@ def train(args):
 
 
 def test(args):
-    config = CONFIGS_TM["TransMorph-Small"]
-    tm_model = TransMorph.TransMorph(config)
+    pl.seed_everything(42)
+    torch.set_float32_matmul_precision("high")
+
+    # Hyperparameters
+    config_name = "TransMorph"
     criterion_image = (nn.MSELoss(), 1)
     criterion_flow = (Grad3d(penalty="l2"), 1)
-    optimizer = torch.optim.Adam
 
+    # Model
+    tm_model = TransMorph(CONFIGS_TM[config_name])
     model = TransMorphModel.load_from_checkpoint(
         args.path_to_ckpt,
         strict=False,
@@ -88,17 +90,22 @@ def test(args):
         criterion_flow=criterion_flow,
     )
 
-    accelerator = "gpu" if args.devices > 0 else "auto"
-    devices = args.devices if args.devices > 0 else "auto"
+    # Trainer
+    accelerator = "auto" if args.devices is None else "gpu"
+    devices = "auto" if args.devices is None else args.devices
     batch_size = 1
 
-    pl.seed_everything(42)
     trainer = pl.Trainer(
         accelerator=accelerator,
         devices=devices,
     )
 
-    datamodule = LungDataModule(batch_size=batch_size, num_workers=4, pin_memory=True)
+    num_workers = 1 if args.num_workers is None else args.num_workers
+    ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
+
+    datamodule = LungDataModule(
+        batch_size=batch_size, num_workers=num_workers, pin_memory=True
+    )
     trainer.test(model, datamodule=datamodule)
 
 

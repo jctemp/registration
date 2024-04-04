@@ -1,5 +1,6 @@
 import pytorch_lightning as pl
 import numpy as np
+import torchio as tio
 import metrics
 
 
@@ -67,7 +68,7 @@ class TransMorphModel(pl.LightningModule):
         self.log("neg_det", neg_det)
 
     def predict_step(self, batch, _):
-        _, _, outputs, flows = self._get_preds_loss(batch)
+        outputs, flows = self.tm_model(batch)
         return outputs, flows
 
     def configure_optimizers(self):
