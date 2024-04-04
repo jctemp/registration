@@ -165,3 +165,5 @@ log
 wandb
 model_weights
 lightning_logs
+.vscode
+TransMorph_Transformer_for_Medical_Image_Registration/

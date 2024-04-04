@@ -12,20 +12,10 @@
 #SBATCH --mail-user=jamie.temple@stud.hs-hannover.de
 #SBATCH --mail-type=ALL
 
-echo "Load module"
 module load Python/3.10.4
-
-echo "Change to project"
 cd /hpc/scratch/project/jvc-lab/stud/registration
-
-echo "Activate python venv"
 source .venv/bin/activate
-
-echo "Prepare for launch"
 cd src
-nvidia-smi
-
-echo "Launch"
 python main.py \
     --devices 2 \
     --max_epochs 100
