@@ -1,6 +1,5 @@
 import pytorch_lightning as pl
 import numpy as np
-import torchio as tio
 import metrics
 
 
