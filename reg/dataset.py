@@ -18,14 +18,30 @@ def standardize(image):
     normalized = (image - image_mean) / image_std
     return normalized
 
-def reader(path):
-    dcm = spio.loadmat(path)["dcm"][:192]
+def reader(path, max=192):
+    dcm = spio.loadmat(path)["dcm"][:max]
     data = np.transpose(dcm, (1, 2, 0))[None, :, :, :]# C, W, H, t
     return data
 
 class LungDataset(Dataset):
-    def __init__(self):
-        self.image_paths = glob.glob("/media/agjvc_rad3/_TESTKOLLEKTIV/Daten/Daten/*/Series*/dicoms.mat")
+    def __init__(self, train=True, val=False, split=(0.8, 0.1), seed=42):
+        subjects = glob.glob("/media/agjvc_rad3/_TESTKOLLEKTIV/Daten/Daten/*/")
+        
+        total_len = len(subjects)
+        train_len = int(total_len * split[0])
+        val_len = int(total_len * split[1])
+        test_len = total_len - (train_len + val_len)
+
+        generator = torch.Generator().manual_seed(seed)
+        train_set, val_set, test_set = random_split(subjects, [train_len, val_len, test_len], generator)
+
+        sub_path = "Series*/dicoms.mat"
+        if train:
+            self.image_paths = [d for p in train_set for d in glob.glob(f"{p}/{sub_path}")]
+        elif val:
+            self.image_paths = [d for p in val_set for d in glob.glob(f"{p}/{sub_path}")]
+        else:
+            self.image_paths = [d for p in test_set for d in glob.glob(f"{p}/{sub_path}")]
 
     def __len__(self):
         return len(self.image_paths)
@@ -43,7 +59,6 @@ class LungDataModule(pl.LightningDataModule):
         self.pin_memory = pin_memory
         self.num_workers = num_workers
 
-        self.dataset = None
         self.train_data = None
         self.val_data = None
         self.test_data = None
@@ -53,20 +68,9 @@ class LungDataModule(pl.LightningDataModule):
         pass
 
     def setup(self, stage=None):
-        # self.dataset = LungDataset()
-        generator = torch.Generator().manual_seed(42)
-        self.dataset = LungDataset()
-
-        total_len = len(self.dataset)
-        train_len = int(total_len * 0.8)
-        val_len = int(total_len * 0.1)
-        test_len = total_len - (train_len + val_len)
-
-        self.train_set, self.val_set, self.test_set = random_split(
-            self.dataset,
-            lengths=[train_len, val_len, test_len],
-            generator=generator,
-        )
+        self.train_set = LungDataset(train=True, val=False)
+        self.val_set = LungDataset(train=False, val=True)
+        self.test_set = LungDataset(train=False, val=False)
 
     def train_dataloader(self):
         return DataLoader(
