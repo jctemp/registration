@@ -9,6 +9,11 @@ parser.add_argument("--mem", type=str, default=32, help="The memory in GB")
 parser.add_argument("--gpu", type=int, default=2, help="The number of GPUs")
 parser.add_argument("--ckpt", type=str, default=None, help="The path to the checkpoint file")
 
+parser.add_argument("model_name", help="The name of the model")
+parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
+parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
+parser.add_argument("max_epoch", help="The maximum number of epochs")
+
 args = parser.parse_args()
 
 # Build bash script
@@ -28,10 +33,11 @@ bash_script = f"""#!/bin/bash
 
 module load Python/3.10.4
 source /hpc/scratch/project/jvc-lab/stud/registration/.venv/bin/activate
-cd /hpc/scratch/project/jvc-lab/stud/registration/src
+cd /hpc/scratch/project/jvc-lab/stud/registration/reg
 """
 
-bash_script += f"python main.py --log --devices {args.gpu} --num_workers {args.cpu} train"
+bash_script += (f"python main.py --log --devices {args.gpu} --num_workers {args.cpu} train {args.model_name} "
+                f"{args.image_loss} {args.flow_loss} {args.max_epoch}")
 
 if args.ckpt is not None:
     bash_script += f" --path_to_ckpt {args.ckpt}"

@@ -1,4 +1,4 @@
-from defaults import *
+from .defaults import *
 
 
 def get_transmorph_config():

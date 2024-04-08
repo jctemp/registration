@@ -3,7 +3,7 @@ import sys
 
 from models.transmorph import TransMorph
 from configs.transmorph import CONFIGS
-from metrics import GL
+from metrics import *
 
 from model import TransMorphModule
 from dataset import LungDataModule
@@ -15,21 +15,34 @@ import pytorch_lightning as pl
 import torch
 import torch.nn as nn
 
+CONFIGS_IMAGE_LOSS = {
+    "mse": MSE(),
+    "ncc": NCC(),
+    "gmi": GMI(),
+}
+
+CONFIGS_FLOW_LOSS = {
+    "gl": GL(penalty="l2"),
+    "bel": BEL(normalize=True),
+}
 
 def train(args):
     pl.seed_everything(42)
     torch.set_float32_matmul_precision("high")
 
     # Hyper Parameters
-    config_name = "transmorph"
-    criterion_image = (nn.MSELoss(), 1) 
-    criterion_flow = (GL(penalty="l2"), 1) 
+    model_name = args.model_name
+    image_loss, image_loss_weight = str.split(args.image_loss, ":")
+    flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
+    max_epoch = args.max_epoch
+
+    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], image_loss_weight) 
+    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], flow_loss_weight) 
     optimizer = torch.optim.Adam
     lr = 1e-4
-    max_epoch = 50
 
     # Model
-    tm_model = TransMorph(CONFIGS[config_name])
+    tm_model = TransMorph(CONFIGS[model_name])
     model = TransMorphModule(
         net=tm_model,
         optimizer=optimizer,
@@ -50,7 +63,7 @@ def train(args):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",
-        filename=f"{config_name}-" + "{epoch}-{val_loss:.2f}",
+        filename=f"{model_name}-" + "{epoch}-{val_loss:.2f}",
         save_top_k=5,
     )
 
@@ -128,8 +141,18 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     train_parser = subparsers.add_parser("train", help="Train the model")
+    train_parser.add_argument("model_name", help="The name of the model")
+    train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
+    train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
+    train_parser.add_argument("max_epoch", help="The maximum number of epochs")
+
     test_parser = subparsers.add_parser("test", help="Test the model")
+    test_parser.add_argument("model_name", help="The name of the model")
+    test_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
+    test_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
+
     pred_parser = subparsers.add_parser("pred", help="Make predictions")
+    pred_parser.add_argument("model_name", help="The name of the model")
 
     args = parser.parse_args()
 
@@ -140,7 +163,7 @@ def main():
     elif args.command == "pred":
         pred(args)
     else:
-        raise Exception("Error: invalid command")
+        parser.print_help()
 
 
 if __name__ == "__main__":
