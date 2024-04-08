@@ -1,7 +1,8 @@
 import argparse
 import sys
 
-from transmorph.models.TransMorph import TransMorph
+from reg.transmorph import TransMorph
+# from transmorph.models.TransMorph import TransMorph
 from transmorph.models.TransMorph import CONFIGS as CONFIGS_TM
 
 from model import TransMorphModel
@@ -21,7 +22,7 @@ def train(args):
     torch.set_float32_matmul_precision("high")
 
     # Hyperparameters
-    config_name = "TransMorph-Lrn"
+    config_name = "TransMorph"
     criterion_image = (nn.MSELoss(), 1)
     criterion_flow = (Grad3d(penalty="l2"), 1)
     optimizer = torch.optim.Adam
@@ -43,7 +44,8 @@ def train(args):
     devices = "auto" if args.devices is None else args.devices
     batch_size = 1
 
-    wandb_logger = WandbLogger(project="lung-registration-transmorph")
+    if args.log:
+        wandb_logger = WandbLogger(project="lung-registration-transmorph")
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",

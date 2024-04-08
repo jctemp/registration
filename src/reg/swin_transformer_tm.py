@@ -1,7 +1,7 @@
+from timm.models.layers import DropPath, trunc_normal_, to_3tuple
 import torch
 import torch.nn as nn
 import torch.utils.checkpoint as checkpoint
-from timm.models.layers import DropPath, trunc_normal_, to_3tuple
 import torch.nn.functional as nnf
 import numpy as np
 
