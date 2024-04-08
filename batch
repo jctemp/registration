@@ -31,7 +31,7 @@ source /hpc/scratch/project/jvc-lab/stud/registration/.venv/bin/activate
 cd /hpc/scratch/project/jvc-lab/stud/registration/src
 """
 
-bash_script += f"python main.py train --log --devices {args.gpu} --num_workers {args.cpu}"
+bash_script += f"python main.py --log --devices {args.gpu} --num_workers {args.cpu} train"
 
 if args.ckpt is not None:
     bash_script += f" --path_to_ckpt {args.ckpt}"
