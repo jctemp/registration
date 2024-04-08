@@ -1,0 +1,45 @@
+# /usr/bin/env python3
+
+import argparse
+import os
+
+parser = argparse.ArgumentParser(description="CLI for Batching")
+parser.add_argument("--cpu" , type=int, default=8, help="The number of CPUs")
+parser.add_argument("--mem", type=str, default=32, help="The memory")
+parser.add_argument("--gpu", type=int, default=2, help="The number of GPUs")
+parser.add_argument("--ckpt", type=str, default=None, help="The path to the checkpoint file")
+
+args = parser.parse_args()
+
+# Build bash script
+bash_script = f"""#!/bin/bash
+#
+#SBATCH --job-name=registration_job_gpu
+#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_job_gpu_out.txt
+#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_job_gpu_err.txt
+#SBATCH --time=7-00:00:00
+#
+#SBATCH --cpus-per-task={args.cpu}
+#SBATCH --mem={args.mem}
+#SBATCH --partition leinegpu_long
+#SBATCH --gres=gpu:{args.gpu}
+#SBATCH --mail-user=jamie.temple@stud.hs-hannover.de
+#SBATCH --mail-type=ALL
+
+module load Python/3.10.4
+source /hpc/scratch/project/jvc-lab/stud/registration/.venv/bin/activate
+cd /hpc/scratch/project/jvc-lab/stud/registration/src
+"""
+
+bash_script += f"python main.py train --log --devices {args.gpu} --num_workers {args.cpu}"
+
+if args.ckpt is not None:
+    bash_script += f" --path_to_ckpt {args.ckpt}"
+
+# Execute bash script
+with open("batch.sh", "w") as f:
+    f.write(bash_script)
+os.system("bash batch.sh")
+os.remove("batch.sh")
+
+print("Batch script executed successfully!")

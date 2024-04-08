@@ -2,7 +2,7 @@ import argparse
 import sys
 
 from reg.transmorph import TransMorph
-from reg.configs import CONFIGS as CONFIGS_TM
+from reg.configs import CONFIGS
 from reg.metrics import MSE, Grad 
 
 from model import TransMorphModel
@@ -21,15 +21,15 @@ def train(args):
     torch.set_float32_matmul_precision("high")
 
     # Hyperparameters
-    config_name = "TransMorph"
+    config_name = "TransMorph-Tiny"
     criterion_image = MSE(weight=1) 
     criterion_flow = Grad(penalty="l2", weight=1)
     optimizer = torch.optim.Adam
     lr = 1e-4
-    max_epoch = 100
+    max_epoch = 50 
 
     # Model
-    tm_model = TransMorph(CONFIGS_TM[config_name])
+    tm_model = TransMorph(CONFIGS[config_name])
     model = TransMorphModel(
         tm_model=tm_model,
         optimizer=optimizer,
@@ -58,7 +58,7 @@ def train(args):
         log_every_n_steps=1,
         deterministic=False,
         benchmark=False,
-        logger=wandb_logger,
+        logger=wandb_logger if args.log else None,
         callbacks=[checkpoint_callback],
         precision="16-mixed",
     )
@@ -78,11 +78,11 @@ def test(args):
 
     # Hyperparameters
     config_name = "TransMorph"
-    criterion_image = (nn.MSELoss(), 1)
-    criterion_flow = (Grad3d(penalty="l2"), 1)
+    criterion_image = nn.MSELoss()
+    criterion_flow = Grad(penalty="l2")
 
     # Model
-    tm_model = TransMorph(CONFIGS_TM[config_name])
+    tm_model = TransMorph(CONFIGS[config_name])
     model = TransMorphModel.load_from_checkpoint(
         args.path_to_ckpt,
         strict=False,
@@ -107,42 +107,26 @@ def test(args):
     datamodule = LungDataModule(
         batch_size=batch_size, num_workers=num_workers, pin_memory=True
     )
-    trainer.test(model, datamodule=datamodule)
+    trainer.test(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
 def pred(args):
-    pass
-
+    # TODO: Load input file, make prediction and output to specified directory
+    raise NotImplementedError("Prediction is not implemented yet")
 
 def main():
-    parser = argparse.ArgumentParser(
-        description="CLI for Training, Testing, and Prediction"
-    )
+    parser = argparse.ArgumentParser(description="CLI for Training, Testing, and Prediction")
+    # parser.add_argument("--verbose", action="store_true", help="Verbose mode")
+    parser.add_argument("--log", action="store_true", help="Log to wandb")
+    parser.add_argument("--devices", type=int, help="The number of available CUDA devices")
+    parser.add_argument("--num_workers", type=int, help="The number of workers")
+    parser.add_argument("--path_to_ckpt", help="Path to checkpoint file")
+
     subparsers = parser.add_subparsers(dest="command")
 
     train_parser = subparsers.add_parser("train", help="Train the model")
-    train_parser.add_argument(
-        "--devices", type=int, help="The number of available CUDA devices"
-    )
-    train_parser.add_argument(
-        "--num_workers", type=int, help="The number of workers for dataloader"
-    )
-    train_parser.add_argument(
-        "--strategy", type=str, help="The strategy for training the model"
-    )
-    train_parser.add_argument("--path_to_ckpt", help="Path to checkpoint file")
-
     test_parser = subparsers.add_parser("test", help="Test the model")
-    test_parser.add_argument(
-        "--devices", type=int, help="The number of available CUDA devices"
-    )
-    test_parser.add_argument("path_to_ckpt", type=str, help="Path to checkpoint file")
-
     pred_parser = subparsers.add_parser("pred", help="Make predictions")
-    pred_parser.add_argument(
-        "--devices", type=int, help="The number of available CUDA devices"
-    )
-    pred_parser.add_argument("path_to_ckpt", help="Path to checkpoint file")
 
     args = parser.parse_args()
 
@@ -151,7 +135,7 @@ def main():
     elif args.command == "test":
         test(args)
     elif args.command == "pred":
-        pass  # pred(args)
+        pred(args)
     else:
         raise Exception("Error: invalid command")
 
