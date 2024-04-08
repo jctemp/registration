@@ -26,7 +26,8 @@ CONFIGS_FLOW_LOSS = {
     "bel": BEL(normalize=True),
 }
 
-def train(args):
+
+def reg_train(args):
     pl.seed_everything(42)
     torch.set_float32_matmul_precision("high")
 
@@ -36,8 +37,8 @@ def train(args):
     flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
     max_epoch = args.max_epoch
 
-    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], image_loss_weight) 
-    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], flow_loss_weight) 
+    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], image_loss_weight)
+    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], flow_loss_weight)
     optimizer = torch.optim.Adam
     lr = 1e-4
 
@@ -63,7 +64,8 @@ def train(args):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",
-        filename=f"{model_name}-" + "{epoch}-{val_loss:.2f}",
+        filename=f"{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-{max_epoch}["
+                 "{epoch}-{val_loss:.2f}]",
         save_top_k=5,
     )
 
@@ -88,7 +90,7 @@ def train(args):
     trainer.fit(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
-def test(args):
+def reg_test(args):
     pl.seed_everything(42)
     torch.set_float32_matmul_precision("high")
 
@@ -126,9 +128,10 @@ def test(args):
     trainer.test(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
-def pred(args):
+def reg_pred(args):
     # TODO: Load input file, make prediction and output to specified directory
     raise NotImplementedError("Prediction is not implemented yet")
+
 
 def main():
     parser = argparse.ArgumentParser(description="CLI for Training, Testing, and Prediction")
@@ -157,11 +160,11 @@ def main():
     args = parser.parse_args()
 
     if args.command == "train":
-        train(args)
+        reg_train(args)
     elif args.command == "test":
-        test(args)
+        reg_test(args)
     elif args.command == "pred":
-        pred(args)
+        reg_pred(args)
     else:
         parser.print_help()
 
