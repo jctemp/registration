@@ -1,11 +1,9 @@
-# /usr/bin/env python3
-
 import argparse
 import os
 
 parser = argparse.ArgumentParser(description="CLI for Batching")
 parser.add_argument("--cpu" , type=int, default=8, help="The number of CPUs")
-parser.add_argument("--mem", type=str, default=32, help="The memory")
+parser.add_argument("--mem", type=str, default=32, help="The memory in GB")
 parser.add_argument("--gpu", type=int, default=2, help="The number of GPUs")
 parser.add_argument("--ckpt", type=str, default=None, help="The path to the checkpoint file")
 
@@ -20,7 +18,7 @@ bash_script = f"""#!/bin/bash
 #SBATCH --time=7-00:00:00
 #
 #SBATCH --cpus-per-task={args.cpu}
-#SBATCH --mem={args.mem}
+#SBATCH --mem={args.mem}GB
 #SBATCH --partition leinegpu_long
 #SBATCH --gres=gpu:{args.gpu}
 #SBATCH --mail-user=jamie.temple@stud.hs-hannover.de
