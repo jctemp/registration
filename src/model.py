@@ -1,7 +1,6 @@
 import pytorch_lightning as pl
 import numpy as np
-import metrics
-
+from reg.metrics import jacobian_det
 
 class TransMorphModel(pl.LightningModule):
     def __init__(
@@ -31,12 +30,12 @@ class TransMorphModel(pl.LightningModule):
         outputs, flows = self.tm_model(batch)
         loss = 0
 
-        loss_fn, w = self.criterion_image
+        loss_fn = self.criterion_image
         losses = [loss_fn(outputs[..., i], target) for i in range(outputs.shape[-1])]
-        loss += sum(losses) * w
+        loss += sum(losses) / outputs.shape[-1]
 
-        loss_fn, w = self.criterion_flow
-        loss += loss_fn(flows) * w
+        loss_fn = self.criterion_flow
+        loss += loss_fn(flows)
 
         return loss, target, outputs, flows
 
@@ -60,7 +59,7 @@ class TransMorphModel(pl.LightningModule):
         )
 
         tar = target.detach().cpu().numpy()[0, :, :, :]
-        jac_det = metrics.jacobian_determinant(
+        jac_det = jacobian_det(
             flows.detach().cpu().numpy()[0, :, :, :, :]
         )
         neg_det = np.sum(jac_det <= 0) / np.prod(tar.shape)

@@ -547,26 +547,6 @@ class Grad3d(torch.nn.Module):
             grad *= self.loss_mult
         return grad
 
-class AnIsoGrad3D(torch.nn.Module):
-    """
-    N-D gradient loss.
-    """
-
-    def __init__(self):
-        super(Grad3DiTV, self).__init__()
-        a = 1
-
-    def forward(self, y_pred, y_true):
-        dy = torch.abs(y_pred[:, :, 1:, 1:, 1:] - y_pred[:, :, :-1, 1:, 1:])
-        dx = torch.abs(y_pred[:, :, 1:, 1:, 1:] - y_pred[:, :, 1:, :-1, 1:])
-        dz = torch.abs(y_pred[:, :, 1:, 1:, 1:] - y_pred[:, :, 1:, 1:, :-1])
-        dy = dy * dy
-        dx = dx * dx
-        dz = dz * dz
-        d = torch.mean(torch.sqrt(dx+dy+dz+1e-6))
-        grad = d / 3.0
-        return grad
-
 class DisplacementRegularizer(torch.nn.Module):
     def __init__(self, energy_type):
         '''

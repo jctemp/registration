@@ -3,9 +3,9 @@ import sys
 
 from reg.transmorph import TransMorph
 from reg.configs import CONFIGS as CONFIGS_TM
+from reg.metrics import MSE, Grad 
 
 from model import TransMorphModel
-from metrics import Grad3d
 from dataset import LungDataModule
 
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -22,8 +22,8 @@ def train(args):
 
     # Hyperparameters
     config_name = "TransMorph"
-    criterion_image = (nn.MSELoss(), 1)
-    criterion_flow = (Grad3d(penalty="l2"), 1)
+    criterion_image = MSE(weight=1) 
+    criterion_flow = Grad(penalty="l2", weight=1)
     optimizer = torch.optim.Adam
     lr = 1e-4
     max_epoch = 100
