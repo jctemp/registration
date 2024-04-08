@@ -1,9 +1,9 @@
-from timm.models.layers import DropPath, trunc_normal_, to_3tuple
 import torch
 import torch.nn as nn
-import torch.utils.checkpoint as checkpoint
 import torch.nn.functional as nnf
+import torch.utils.checkpoint as checkpoint
 import numpy as np
+from timm.models.layers import DropPath, trunc_normal_, to_3tuple
 
 
 class Mlp(nn.Module):
@@ -29,7 +29,7 @@ def window_partition(x, window_size):
     """
     Args:
         x: (B, H, W, L, C)
-        window_size (Tuple[int]): window size
+        window_size (tuple[int]): window size
     Returns:
         windows: (num_windows*B, window_size, window_size, window_size, C)
     """
@@ -45,7 +45,7 @@ def window_reverse(windows, window_size, H, W, L):
     """
     Args:
         windows: (num_windows*B, window_size, window_size, window_size, C)
-        window_size (Tuple[int]): Window size
+        window_size (tuple[int]): Window size
         H (int): Height of image
         W (int): Width of image
         L (int): Length of image
@@ -119,11 +119,10 @@ class WindowAttention(nn.Module):
         """
         B_, N, C = x.shape  # (num_windows*B, Wh*Ww*Wt, C)
         qkv = self.qkv(x).reshape(B_, N, 3, self.num_heads, C // self.num_heads).permute(2, 0, 3, 1, 4)
-        q, k, v = qkv[0], qkv[1], qkv[2]  # make torchscript happy (cannot use tensor as tuple)
+        q, k, v = qkv[0], qkv[1], qkv[2]  # make torch script happy (cannot use tensor as tuple)
 
         q = q * self.scale
         attn = (q @ k.transpose(-2, -1))
-
         if self.rpe:
             relative_position_bias = self.relative_position_bias_table[self.relative_position_index.view(-1)].view(
                 self.window_size[0] * self.window_size[1] * self.window_size[2],
@@ -138,7 +137,6 @@ class WindowAttention(nn.Module):
             attn = self.softmax(attn)
         else:
             attn = self.softmax(attn)
-
         attn = self.attn_drop(attn)
 
         x = (attn @ v).transpose(1, 2).reshape(B_, N, C)
@@ -149,16 +147,14 @@ class WindowAttention(nn.Module):
 
 class SwinTransformerBlock(nn.Module):
     r""" Swin Transformer Block.
-
     Args:
         dim (int): Number of input channels.
         num_heads (int): Number of attention heads.
-        window_size (Tuple[int]): Window size.
-        shift_size (Tuple[int]): Shift size for SW-MSA.
+        window_size (tuple[int]): Window size.
+        shift_size (tuple[int]): Shift size for SW-MSA.
         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        rpe (bool, optional): If True, relative positional embedding
         drop (float, optional): Dropout rate. Default: 0.0
         attn_drop (float, optional): Attention dropout rate. Default: 0.0
         drop_path (float, optional): Stochastic depth rate. Default: 0.0
@@ -175,7 +171,6 @@ class SwinTransformerBlock(nn.Module):
         self.window_size = window_size
         self.shift_size = shift_size
         self.mlp_ratio = mlp_ratio
-
         assert 0 <= min(self.shift_size) < min(
             self.window_size), "shift_size must in 0-window_size, shift_sz: {}, win_size: {}".format(self.shift_size,
                                                                                                      self.window_size)
@@ -190,16 +185,11 @@ class SwinTransformerBlock(nn.Module):
         mlp_hidden_dim = int(dim * mlp_ratio)
         self.mlp = Mlp(in_features=dim, hidden_features=mlp_hidden_dim, act_layer=act_layer, drop=drop)
 
-        # MS computes here an attention mask
-
         self.H = None
         self.W = None
         self.T = None
 
     def forward(self, x, mask_matrix):
-
-        # MS defines for HWT an input shape
-
         H, W, T = self.H, self.W, self.T
         B, L, C = x.shape
         assert L == H * W * T, "input feature has wrong size"
@@ -275,7 +265,7 @@ class PatchMerging(nn.Module):
         """
         B, L, C = x.shape
         assert L == H * W * T, "input feature has wrong size"
-        assert H % 2 == 0 and W % 2 == 0 and T % 2 == 0, f"x size ({H}*{W}*{T}) are not even."
+        assert H % 2 == 0 and W % 2 == 0 and T % 2 == 0, f"x size ({H}*{W}) are not even."
 
         x = x.view(B, H, W, T, C)
 
@@ -307,7 +297,7 @@ class BasicLayer(nn.Module):
         dim (int): Number of feature channels
         depth (int): Depths of this stage.
         num_heads (int): Number of attention head.
-        window_size (Tuple[int]): Local window size. Default: 7.
+        window_size (tuple[int]): Local window size. Default: 7.
         mlp_ratio (float): Ratio of mlp hidden dim to embedding dim. Default: 4.
         qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
         qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
@@ -415,7 +405,7 @@ class BasicLayer(nn.Module):
 class PatchEmbed(nn.Module):
     """ Image to Patch Embedding
     Args:
-        patch_size (int): Patch token size. Default: 4.
+        patch_size (tuple[int]): Patch token size. Default: 4.
         in_chans (int): Number of input image channels. Default: 3.
         embed_dim (int): Number of linear projection output channels. Default: 96.
         norm_layer (nn.Module, optional): Normalization layer. Default: None
@@ -456,9 +446,9 @@ class PatchEmbed(nn.Module):
 
 
 class SinusoidalPositionEmbedding(nn.Module):
-    '''
+    """
     Rotary Position Embedding
-    '''
+    """
 
     def __init__(self, ):
         super(SinusoidalPositionEmbedding, self).__init__()
@@ -485,7 +475,6 @@ class SinPositionalEncoding3D(nn.Module):
             channels += 1
         self.channels = channels
         self.inv_freq = 1. / (10000 ** (torch.arange(0, channels, 2).float() / channels))
-        # self.register_buffer('inv_freq', inv_freq)
 
     def forward(self, tensor):
         """
@@ -518,10 +507,9 @@ class SwinTransformer(nn.Module):
         A PyTorch impl of : `Swin Transformer: Hierarchical Vision Transformer using Shifted Windows`  -
           https://arxiv.org/pdf/2103.14030
     Args:
-        img_size (int | tuple(int)): Input image size. Default 224
+        img_size (tuple(int)): Input image size. Default (244, 244, 244)
         patch_size (int | tuple(int)): Patch size. Default: 4
         in_chans (int): Number of input image channels. Default: 3
-        num_classes (int): Number of classes for classification head. Default: 1000
         embed_dim (int): Patch embedding dimension. Default: 96
         depths (tuple(int)): Depth of each Swin Transformer layer.
         num_heads (tuple(int)): Number of attention heads in different layers.
@@ -538,12 +526,13 @@ class SwinTransformer(nn.Module):
         use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
     """
 
-    def __init__(self, pretrain_img_size=224,
+    def __init__(self,
+                 img_size=(244, 244, 244),
                  patch_size=4,
                  in_chans=3,
                  embed_dim=96,
-                 depths=[2, 2, 6, 2],
-                 num_heads=[3, 6, 12, 24],
+                 depths=(2, 2, 6, 2),
+                 num_heads=(3, 6, 12, 24),
                  window_size=(7, 7, 7),
                  mlp_ratio=4.,
                  qkv_bias=True,
@@ -559,10 +548,9 @@ class SwinTransformer(nn.Module):
                  out_indices=(0, 1, 2, 3),
                  frozen_stages=-1,
                  use_checkpoint=False,
-                 pat_merg_rf=2,):
+                 pat_merg_rf=2):
         super().__init__()
-
-        self.pretrain_img_size = pretrain_img_size
+        self.img_size = img_size
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
         self.ape = ape
@@ -571,7 +559,6 @@ class SwinTransformer(nn.Module):
         self.patch_norm = patch_norm
         self.out_indices = out_indices
         self.frozen_stages = frozen_stages
-        
         # split image into non-overlapping patches
         self.patch_embed = PatchEmbed(
             patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
@@ -579,9 +566,10 @@ class SwinTransformer(nn.Module):
 
         # absolute position embedding
         if self.ape:
-            pretrain_img_size = to_3tuple(self.pretrain_img_size)
+            img_size = self.img_size
             patch_size = to_3tuple(patch_size)
-            patches_resolution = [pretrain_img_size[0] // patch_size[0], pretrain_img_size[1] // patch_size[1], pretrain_img_size[2] // patch_size[2]]
+            patches_resolution = [img_size[0] // patch_size[0], img_size[1] // patch_size[1],
+                                  img_size[2] // patch_size[2]]
 
             self.absolute_pos_embed = nn.Parameter(
                 torch.zeros(1, embed_dim, patches_resolution[0], patches_resolution[1], patches_resolution[2]))
@@ -598,20 +586,20 @@ class SwinTransformer(nn.Module):
         self.layers = nn.ModuleList()
         for i_layer in range(self.num_layers):
             layer = BasicLayer(dim=int(embed_dim * 2 ** i_layer),
-                                depth=depths[i_layer],
-                                num_heads=num_heads[i_layer],
-                                window_size=window_size,
-                                mlp_ratio=mlp_ratio,
-                                qkv_bias=qkv_bias,
-                                rpe = rpe,
-                                qk_scale=qk_scale,
-                                drop=drop_rate,
-                                attn_drop=attn_drop_rate,
-                                drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
-                                norm_layer=norm_layer,
-                                downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
-                                use_checkpoint=use_checkpoint,
-                               pat_merg_rf=pat_merg_rf,)
+                               depth=depths[i_layer],
+                               num_heads=num_heads[i_layer],
+                               window_size=window_size,
+                               mlp_ratio=mlp_ratio,
+                               qkv_bias=qkv_bias,
+                               rpe=rpe,
+                               qk_scale=qk_scale,
+                               drop=drop_rate,
+                               attn_drop=attn_drop_rate,
+                               drop_path=dpr[sum(depths[:i_layer]):sum(depths[:i_layer + 1])],
+                               norm_layer=norm_layer,
+                               downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
+                               use_checkpoint=use_checkpoint,
+                               pat_merg_rf=pat_merg_rf, )
             self.layers.append(layer)
 
         num_features = [int(embed_dim * 2 ** i) for i in range(self.num_layers)]

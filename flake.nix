@@ -43,11 +43,10 @@
         cudaPackages = pkgs.cudaPackages;
 
         packages = [
-          (pkgs.writeShellScriptBin "lab" "jupyter lab")
-
           pkgs.cachix
           pkgs.alejandra
           pkgs.nodejs
+          pkgs.jetbrains.pycharm-community
 
           cudaPackages.cudatoolkit
           cudaPackages.cudnn
