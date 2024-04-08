@@ -30,12 +30,12 @@ class TransMorphModel(pl.LightningModule):
         outputs, flows = self.tm_model(batch)
         loss = 0
 
-        loss_fn = self.criterion_image
+        loss_fn, w = self.criterion_image
         losses = [loss_fn(outputs[..., i], target) for i in range(outputs.shape[-1])]
-        loss += sum(losses) / outputs.shape[-1]
+        loss += (sum(losses) / outputs.shape[-1]) * w
 
-        loss_fn = self.criterion_flow
-        loss += loss_fn(flows)
+        loss_fn, w = self.criterion_flow
+        loss += loss_fn(flows) * w
 
         return loss, target, outputs, flows
 

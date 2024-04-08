@@ -30,12 +30,10 @@ class Grad(torch.nn.Module):
     N-D gradient loss.
     """
 
-    def __init__(self, penalty="l2", weight=None):
+    def __init__(self, penalty="l2"):
         super().__init__()
         assert (penalty == "l1" or penalty == "l2"), "penalty can only be l1 or l2. Got: %s" % self.penalty
-        
         self.penalty = penalty
-        self.weight = weight
 
     def forward(self, flow):
         y = flow
@@ -66,8 +64,5 @@ class Grad(torch.nn.Module):
 
         d = [g.mean() for g in dif]
         grad_loss = sum(d) / len(d)
-
-        if self.weight is not None:
-            grad_loss *= self.weight
 
         return grad_loss

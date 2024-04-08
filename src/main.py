@@ -3,7 +3,7 @@ import sys
 
 from reg.transmorph import TransMorph
 from reg.configs import CONFIGS
-from reg.metrics import MSE, Grad 
+from reg.metrics import MSE, GL 
 
 from model import TransMorphModel
 from dataset import LungDataModule
@@ -22,8 +22,8 @@ def train(args):
 
     # Hyperparameters
     config_name = "TransMorph-Tiny"
-    criterion_image = MSE(weight=1) 
-    criterion_flow = Grad(penalty="l2", weight=1)
+    criterion_image = (nn.MSELoss(), 1) 
+    criterion_flow = (GL(penalty="l2"), 1) 
     optimizer = torch.optim.Adam
     lr = 1e-4
     max_epoch = 50 
@@ -79,7 +79,7 @@ def test(args):
     # Hyperparameters
     config_name = "TransMorph"
     criterion_image = nn.MSELoss()
-    criterion_flow = Grad(penalty="l2")
+    criterion_flow = GL(penalty="l2")
 
     # Model
     tm_model = TransMorph(CONFIGS[config_name])
