@@ -1,11 +1,11 @@
 import argparse
 import sys
 
-from reg.transmorph import TransMorph
-from reg.configs import CONFIGS
-from reg.metrics import MSE, GL 
+from models.transmorph import TransMorph
+from configs.transmorph import CONFIGS
+from metrics import GL
 
-from model import TransMorphModel
+from model import TransMorphModule
 from dataset import LungDataModule
 
 from pytorch_lightning.callbacks import ModelCheckpoint
@@ -20,18 +20,18 @@ def train(args):
     pl.seed_everything(42)
     torch.set_float32_matmul_precision("high")
 
-    # Hyperparameters
-    config_name = "TransMorph-Tiny"
+    # Hyper Parameters
+    config_name = "transmorph"
     criterion_image = (nn.MSELoss(), 1) 
     criterion_flow = (GL(penalty="l2"), 1) 
     optimizer = torch.optim.Adam
     lr = 1e-4
-    max_epoch = 50 
+    max_epoch = 50
 
     # Model
     tm_model = TransMorph(CONFIGS[config_name])
-    model = TransMorphModel(
-        tm_model=tm_model,
+    model = TransMorphModule(
+        net=tm_model,
         optimizer=optimizer,
         lr=lr,
         criterion_image=criterion_image,
@@ -42,13 +42,16 @@ def train(args):
     accelerator = "auto" if args.devices is None else "gpu"
     devices = "auto" if args.devices is None else args.devices
     batch_size = 1
+    trainer_logger = None
 
     if args.log:
-        wandb_logger = WandbLogger(project="lung-registration-transmorph")
+        trainer_logger = [WandbLogger(project="lung-registration-transmorph")]
+
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",
         filename=f"{config_name}-" + "{epoch}-{val_loss:.2f}",
+        save_top_k=5,
     )
 
     trainer = pl.Trainer(
@@ -58,7 +61,7 @@ def train(args):
         log_every_n_steps=1,
         deterministic=False,
         benchmark=False,
-        logger=wandb_logger if args.log else None,
+        logger=trainer_logger,
         callbacks=[checkpoint_callback],
         precision="16-mixed",
     )
@@ -83,7 +86,7 @@ def test(args):
 
     # Model
     tm_model = TransMorph(CONFIGS[config_name])
-    model = TransMorphModel.load_from_checkpoint(
+    model = TransMorphModule.load_from_checkpoint(
         args.path_to_ckpt,
         strict=False,
         tm_model=tm_model,

@@ -666,7 +666,7 @@ class SwinTransformer(nn.Module):
             frozen_stages=-1,
             use_checkpoint=False,
             pat_merg_rf=2,
-            mc_drop_rate=0.15,
+            mc_drop=0.15,
             use_mc=False):
         super().__init__()
         self.img_size = img_size
@@ -720,7 +720,7 @@ class SwinTransformer(nn.Module):
                 downsample=PatchMerging if (i_layer < self.num_layers - 1) else None,
                 use_checkpoint=use_checkpoint,
                 pat_merg_rf=pat_merg_rf,
-                mc_drop=mc_drop_rate,
+                mc_drop=mc_drop,
                 use_mc=use_mc)
             self.layers.append(layer)
 

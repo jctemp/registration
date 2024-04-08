@@ -29,7 +29,7 @@ class TransMorphBayes(nn.Module):
             use_checkpoint=config.use_checkpoint,
             out_indices=config.out_indices,
             pat_merg_rf=config.pat_merg_rf,
-            mc_drop_rate=config.mc_drop,
+            mc_drop=config.mc_drop,
             use_mc=True
         )
 

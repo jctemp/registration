@@ -1,18 +1,19 @@
 import pytorch_lightning as pl
 import numpy as np
-from reg.metrics import jacobian_det
+from metrics import jacobian_det
 
-class TransMorphModel(pl.LightningModule):
+
+class TransMorphModule(pl.LightningModule):
     def __init__(
-        self,
-        tm_model,
-        criterion_image=None,
-        criterion_flow=None,
-        optimizer=None,
-        lr=None,
+            self,
+            net,
+            criterion_image=None,
+            criterion_flow=None,
+            optimizer=None,
+            lr=None,
     ):
         super().__init__()
-        self.tm_model = tm_model
+        self.net = net
         self.criterion_image = criterion_image
         self.criterion_flow = criterion_flow
         self.optimizer = optimizer
@@ -26,8 +27,9 @@ class TransMorphModel(pl.LightningModule):
             raise Exception("criterion_flow is None")
 
         # always use last image in a seq. (B,C,W,H)
+        # TODO: determine strategy to select target
         target = batch[:, :, :, :, -1]
-        outputs, flows = self.tm_model(batch)
+        outputs, flows = self.net(batch)
         loss = 0
 
         loss_fn, w = self.criterion_image
@@ -49,7 +51,7 @@ class TransMorphModel(pl.LightningModule):
     def validation_step(self, batch, _):
         loss, _, _, _ = self._get_preds_loss(batch)
         self.log(
-            "val_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True
+            "val_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True,
         )
 
     def test_step(self, batch, _):
@@ -66,9 +68,9 @@ class TransMorphModel(pl.LightningModule):
         self.log("neg_det", neg_det)
 
     def predict_step(self, batch, _):
-        outputs, flows = self.tm_model(batch)
+        outputs, flows = self.net(batch)
         return outputs, flows
 
     def configure_optimizers(self):
-        optimizer = self.optimizer(self.tm_model.parameters(), lr=self.lr)
+        optimizer = self.optimizer(self.net.parameters(), lr=self.lr)
         return optimizer
