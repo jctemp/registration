@@ -45,7 +45,7 @@ if args.ckpt is not None:
 # Execute bash script
 with open("batch.sh", "w") as f:
     f.write(bash_script)
-os.system("bash batch.sh")
+os.system("sbatch batch.sh")
 os.remove("batch.sh")
 
 print("Batch script executed successfully!")
