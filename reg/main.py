@@ -28,14 +28,11 @@ CONFIGS_FLOW_LOSS = {
 
 
 def reg_train(args):
-    pl.seed_everything(42)
-    torch.set_float32_matmul_precision("high")
-
     # Hyper Parameters
     model_name = args.model_name
     image_loss, image_loss_weight = str.split(args.image_loss, ":")
     flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
-    max_epoch = args.max_epoch
+    max_epoch = int(args.max_epoch)
 
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
@@ -78,7 +75,7 @@ def reg_train(args):
         benchmark=False,
         logger=trainer_logger,
         callbacks=[checkpoint_callback],
-        precision="16-mixed",
+        precision="32",
     )
 
     num_workers = 1 if args.num_workers is None else args.num_workers
@@ -91,16 +88,15 @@ def reg_train(args):
 
 
 def reg_test(args):
-    pl.seed_everything(42)
-    torch.set_float32_matmul_precision("high")
-
-    # Hyperparameters
-    config_name = "TransMorph"
-    criterion_image = nn.MSELoss()
-    criterion_flow = GL(penalty="l2")
+    # Hyper Parameters
+    model_name = args.model_name
+    image_loss, image_loss_weight = str.split(args.image_loss, ":")
+    flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
+    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
+    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
 
     # Model
-    tm_model = TransMorph(CONFIGS[config_name])
+    tm_model = TransMorph(CONFIGS[model_name])
     model = TransMorphModule.load_from_checkpoint(
         args.path_to_ckpt,
         strict=False,
@@ -158,6 +154,9 @@ def main():
     pred_parser.add_argument("model_name", help="The name of the model")
 
     args = parser.parse_args()
+
+    pl.seed_everything(42)
+    torch.set_float32_matmul_precision("high")
 
     if args.command == "train":
         reg_train(args)
