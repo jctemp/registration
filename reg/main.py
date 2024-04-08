@@ -37,8 +37,8 @@ def reg_train(args):
     flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
     max_epoch = args.max_epoch
 
-    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], image_loss_weight)
-    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], flow_loss_weight)
+    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
+    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
     optimizer = torch.optim.Adam
     lr = 1e-4
 
