@@ -81,43 +81,37 @@ out_indices (tuple(int)): Indices of Transformer blocks to output features. Defa
 reg_head_chan (int): Number of channels in the registration head (i.e., the final convolutional layer) 
 img_size (int | tuple(int)): Input image size, e.g., (160, 192, 224)
 '''
-def get_3DTransMorph_config():
-    '''
-    Trainable params: 15,201,579
-    '''
+def get_TransMorph_config():
     config = ml_collections.ConfigDict()
     config.update(get_transmorph_only_config())
     config.update(get_swin_default_config())
     return config
 
-def get_3DTransMorphNoRelativePosEmbd_config():
-    '''
-    Trainable params: 15,201,579
-    '''
+def get_TransMorph_NoRelPosEmbd_config():
     config = ml_collections.ConfigDict()
-    config.update(get_3DTransMorph_config())
+    config.update(get_TransMorph_config())
     config.rpe = False
     return config
 
-def get_3DTransMorphSin_config():
+def get_TransMorph_SinPosEmbd_config():
     '''
     TransMorph with Sinusoidal Positional Embedding
     '''
     config = ml_collections.ConfigDict()
-    config.update(get_3DTransMorph_config())
+    config.update(get_TransMorph_config())
     config.spe = True
     return config
 
-def get_3DTransMorphLrn_config():
+def get_TransMorph_LrnPosEmbd_config():
     '''
     TransMorph with Learnable Positional Embedding
     '''
     config = ml_collections.ConfigDict()
-    config.update(get_3DTransMorph_config())
+    config.update(get_TransMorph_config())
     config.ape = True
     return config
 
-def get_3DTransMorphNoConvSkip_config():
+def get_TransMorph_NoConvSkip_config():
     '''
     No skip connections from convolution layers
 
@@ -125,11 +119,11 @@ def get_3DTransMorphNoConvSkip_config():
     Number of parameters:           63.56 M
     '''
     config = ml_collections.ConfigDict()
-    config.update(get_3DTransMorph_config())
+    config.update(get_TransMorph_config())
     config.if_convskip = False
     return config
 
-def get_3DTransMorphNoTransSkip_config():
+def get_TransMorph_NoTransSkip_config():
     '''
     No skip connections from Transformer blocks
 
@@ -137,11 +131,11 @@ def get_3DTransMorphNoTransSkip_config():
     Number of parameters:           58.4 M
     '''
     config = ml_collections.ConfigDict()
-    config.update(get_3DTransMorph_config())
+    config.update(get_TransMorph_config())
     config.if_transskip = False
     return config
 
-def get_3DTransMorphNoSkip_config():
+def get_TransMorph_NoSkip_config():
     '''
     No skip connections
 
@@ -149,12 +143,12 @@ def get_3DTransMorphNoSkip_config():
     Number of parameters:           58.4 M
     '''
     config = ml_collections.ConfigDict()
-    config.update(get_3DTransMorph_config())
+    config.update(get_TransMorph_config())
     config.if_transskip = False
     config.if_convskip = False
     return config
 
-def get_3DTransMorphLarge_config():
+def get_TransMorph_Large_config():
     '''
     A Large TransMorph Network
     '''
@@ -163,7 +157,7 @@ def get_3DTransMorphLarge_config():
     config.update(get_swin_large_config())
     return config
 
-def get_3DTransMorphSmall_config():
+def get_TransMorph_Small_config():
     '''
     A Small TransMorph Network
     '''
@@ -172,7 +166,7 @@ def get_3DTransMorphSmall_config():
     config.update(get_swin_small_config())
     return config
 
-def get_3DTransMorphTiny_config():
+def get_TransMorph_Tiny_config():
     '''
     A Tiny TransMorph Network
     '''
@@ -182,15 +176,15 @@ def get_3DTransMorphTiny_config():
     return config
 
 CONFIGS = {
-    'TransMorph-No-Conv-Skip': get_3DTransMorphNoConvSkip_config(),
-    'TransMorph-No-Trans-Skip': get_3DTransMorphNoTransSkip_config(),
-    'TransMorph-No-Skip': get_3DTransMorphNoSkip_config(),
-    'TransMorph-Lrn': get_3DTransMorphLrn_config(),
-    'TransMorph-Sin': get_3DTransMorphSin_config(),
-    'TransMorph-No-RelPosEmbed': get_3DTransMorphNoRelativePosEmbd_config(),
+    'TransMorph-No-Conv-Skip': get_TransMorph_NoConvSkip_config(),
+    'TransMorph-No-Trans-Skip': get_TransMorph_NoTransSkip_config(),
+    'TransMorph-No-Skip': get_TransMorph_NoSkip_config(),
+    'TransMorph-Lrn': get_TransMorph_LrnPosEmbd_config(),
+    'TransMorph-Sin': get_TransMorph_SinPosEmbd_config(),
+    'TransMorph-No-RelPosEmbed': get_TransMorph_NoRelPosEmbd_config(),
 
-    'TransMorph': get_3DTransMorph_config(),
-    'TransMorph-Large': get_3DTransMorphLarge_config(),
-    'TransMorph-Small': get_3DTransMorphSmall_config(),
-    'TransMorph-Tiny': get_3DTransMorphTiny_config(),
+    'TransMorph': get_TransMorph_config(),
+    'TransMorph-Large': get_TransMorph_Large_config(),
+    'TransMorph-Small': get_TransMorph_Small_config(),
+    'TransMorph-Tiny': get_TransMorph_Tiny_config(),
 }
