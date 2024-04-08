@@ -2,8 +2,7 @@ import argparse
 import sys
 
 from reg.transmorph import TransMorph
-# from transmorph.models.TransMorph import TransMorph
-from transmorph.models.TransMorph import CONFIGS as CONFIGS_TM
+from reg.configs import CONFIGS as CONFIGS_TM
 
 from model import TransMorphModel
 from metrics import Grad3d

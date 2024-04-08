@@ -561,6 +561,7 @@ class SwinTransformer(nn.Module):
                  use_checkpoint=False,
                  pat_merg_rf=2,):
         super().__init__()
+
         self.pretrain_img_size = pretrain_img_size
         self.num_layers = len(depths)
         self.embed_dim = embed_dim
@@ -570,6 +571,7 @@ class SwinTransformer(nn.Module):
         self.patch_norm = patch_norm
         self.out_indices = out_indices
         self.frozen_stages = frozen_stages
+        
         # split image into non-overlapping patches
         self.patch_embed = PatchEmbed(
             patch_size=patch_size, in_chans=in_chans, embed_dim=embed_dim,
