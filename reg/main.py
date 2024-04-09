@@ -61,7 +61,7 @@ def reg_train(args):
         monitor="val_loss",
         dirpath="model_weights/",
         filename=f"{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-{series_len}-{max_epoch}-"
-                 "{epoch}-{val_loss:.2f}",
+                 "{epoch}-{val_loss:.5f}",
         save_top_k=5,
     )
 

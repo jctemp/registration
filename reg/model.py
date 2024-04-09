@@ -34,7 +34,8 @@ class TransMorphModule(pl.LightningModule):
 
         loss_fn, w = self.criterion_image
         losses = [loss_fn(outputs[..., i], target) for i in range(outputs.shape[-1])]
-        loss += (sum(losses) / outputs.shape[-1]) * w
+        loss += sum(losses) * w
+        # loss += (sum(losses) / outputs.shape[-1]) * w
 
         loss_fn, w = self.criterion_flow
         loss += loss_fn(flows) * w
