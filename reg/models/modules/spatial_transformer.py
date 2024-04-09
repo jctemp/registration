@@ -36,7 +36,9 @@ class SpatialTransformerSeries(nn.Module):
     def forward(self, src, flow):
         # new locations
         new_locs = self.grid + flow
-        shape = flow.shape[2:]
+
+        # exclude time dimension
+        shape = flow.shape[2:-1]
 
         # need to normalize grid values to [-1, 1] for resampler
         for i in range(len(shape)):
