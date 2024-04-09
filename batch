@@ -13,6 +13,7 @@ parser.add_argument("model_name", help="The name of the model")
 parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
 parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
 parser.add_argument("max_epoch", help="The maximum number of epochs")
+parser.add_argument("series_len", help="The length of the series")
 
 args = parser.parse_args()
 
@@ -37,7 +38,7 @@ cd /hpc/scratch/project/jvc-lab/stud/registration/reg
 """
 
 bash_script += (f"python main.py --log --devices {args.gpu} --num_workers {args.cpu} train {args.model_name} "
-                f"{args.image_loss} {args.flow_loss} {args.max_epoch}")
+                f"{args.image_loss} {args.flow_loss} {args.max_epoch} {args.series_len}")
 
 if args.ckpt is not None:
     bash_script += f" --path_to_ckpt {args.ckpt}"
@@ -47,5 +48,3 @@ with open("batch.sh", "w") as f:
     f.write(bash_script)
 os.system("sbatch batch.sh")
 os.remove("batch.sh")
-
-print("Batch script executed successfully!")

@@ -13,7 +13,6 @@ from pytorch_lightning.loggers import WandbLogger
 
 import pytorch_lightning as pl
 import torch
-import torch.nn as nn
 
 CONFIGS_IMAGE_LOSS = {
     "mse": MSE(),
@@ -26,13 +25,13 @@ CONFIGS_FLOW_LOSS = {
     "bel": BEL(normalize=True),
 }
 
-
 def reg_train(args):
     # Hyper Parameters
     model_name = args.model_name
     image_loss, image_loss_weight = str.split(args.image_loss, ":")
     flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
     max_epoch = int(args.max_epoch)
+    series_len = int(args.series_len)
 
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
@@ -61,8 +60,8 @@ def reg_train(args):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",
-        filename=f"{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-{max_epoch}["
-                 "{epoch}-{val_loss:.2f}]",
+        filename=f"{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-{series_len}-{max_epoch}-"
+                 "{epoch}-{val_loss:.2f}",
         save_top_k=5,
     )
 
@@ -81,9 +80,7 @@ def reg_train(args):
     num_workers = 1 if args.num_workers is None else args.num_workers
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
-    datamodule = LungDataModule(
-        batch_size=batch_size, num_workers=num_workers, pin_memory=True
-    )
+    datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True, series_len=series_len)
     trainer.fit(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
@@ -144,6 +141,7 @@ def main():
     train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
     train_parser.add_argument("max_epoch", help="The maximum number of epochs")
+    train_parser.add_argument("series_len", help="The length of the series, e.g. 192")
 
     test_parser = subparsers.add_parser("test", help="Test the model")
     test_parser.add_argument("model_name", help="The name of the model")
