@@ -47,6 +47,7 @@ def reg_train(args):
 
     # Model
     config = CONFIGS[model_name]
+    config.img_size[-1] = series_len
     config.series_reg = series_reg
 
     print(config)
