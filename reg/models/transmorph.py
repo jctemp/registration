@@ -117,7 +117,11 @@ class TransMorph(nn.Module):
         x = self.up3(x, f4)
         x = self.up4(x, f5)
 
-        flow = self.reg_head(x)
-        out = self.spatial_trans(source, flow)
+        if self.series_reg:
+            flow = self.reg_head2d(x)
+            out = self.spatial_series_trans(source, flow)
+        else:
+            flow = self.reg_head3d(x)
+            out = self.spatial_trans(source, flow)
 
         return out, flow
