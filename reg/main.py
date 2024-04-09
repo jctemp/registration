@@ -25,6 +25,7 @@ CONFIGS_FLOW_LOSS = {
     "bel": BEL(normalize=True),
 }
 
+
 def reg_train(args):
     # Hyper Parameters
     model_name = args.model_name
@@ -32,6 +33,7 @@ def reg_train(args):
     flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
     max_epoch = int(args.max_epoch)
     series_len = int(args.series_len)
+    series_reg = True if str.lower(args.reg_type) == "series" else False
 
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
@@ -39,7 +41,12 @@ def reg_train(args):
     lr = 1e-4
 
     # Model
-    tm_model = TransMorph(CONFIGS[model_name])
+    config = CONFIGS[model_name]
+    config.series_reg = series_reg
+
+    print(config)
+
+    tm_model = TransMorph(config)
     model = TransMorphModule(
         net=tm_model,
         optimizer=optimizer,
@@ -142,6 +149,7 @@ def main():
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
     train_parser.add_argument("max_epoch", help="The maximum number of epochs")
     train_parser.add_argument("series_len", help="The length of the series, e.g. 192")
+    train_parser.add_argument("reg_type", help="Volume or time series (volume, series)")
 
     test_parser = subparsers.add_parser("test", help="Test the model")
     test_parser.add_argument("model_name", help="The name of the model")

@@ -49,8 +49,9 @@ class SpatialTransformerSeries(nn.Module):
         new_locs = new_locs[..., [1, 0], :]
 
         # iterate over time dimension and resample each image
-        resampled = torch.stack([nnf.grid_sample(src[i], new_locs[i], align_corners=True, mode=self.mode) for i in
-                                 range(src.shape[-1])], dim=len(src) - 1)
+        resampled = torch.stack(
+            [nnf.grid_sample(src[..., i], new_locs[..., i], align_corners=True, mode=self.mode) for i in
+             range(src.shape[-1])], dim=-1)
 
         return resampled
 

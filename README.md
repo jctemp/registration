@@ -1,6 +1,10 @@
 # Registration
 
-Models:
+Experiment:
+
+- Registration type
+  - 2d DVF prediction
+  - 3d DVF prediction
 
 - Epochen (192, MSE, GL)
   - 100
