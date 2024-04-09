@@ -32,15 +32,18 @@ CONFIGS_OPTIMIZER = {
 
 def reg_train(args):
     # Hyper Parameters
-    model_name = args.model_name
-    image_loss, image_loss_weight = str.split(args.image_loss, ":")
-    flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
+    optimizer_name = str.lower(args.optimizer)
+    lr = float(args.lr)
+    series_reg = True if str.lower(args.reg_type) == "series" else False
+    target_type = str.lower(args.target_type)
     max_epoch = int(args.max_epoch)
     series_len = int(args.series_len)
-    series_reg = True if str.lower(args.reg_type) == "series" else False
-    optimizer_name = "adam"
-    lr = float("1e-4")
 
+    model_name = args.model_name
+    image_loss, image_loss_weight = str.split(str.lower(args.image_loss), ":")
+    flow_loss, flow_loss_weight = str.split(str.lower(args.flow_loss), ":")
+
+    # Prepare training
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
     optimizer = CONFIGS_OPTIMIZER[optimizer_name]
@@ -59,6 +62,7 @@ def reg_train(args):
         lr=lr,
         criterion_image=criterion_image,
         criterion_flow=criterion_flow,
+        target_type=target_type,
     )
 
     # Trainer
@@ -69,21 +73,23 @@ def reg_train(args):
 
     if args.log:
         logger = WandbLogger(project="lung-registration-transmorph")
+        logger.experiment.config["optimizer"] = optimizer_name
+        logger.experiment.config["lr"] = str(lr)
+        logger.experiment.config["reg_type"] = series_reg
+        logger.experiment.config["target_type"] = target_type
+        logger.experiment.config["max_epoch"] = max_epoch
+        logger.experiment.config["series_len"] = series_len
         logger.experiment.config["model_name"] = model_name
         logger.experiment.config["image_loss"] = image_loss
         logger.experiment.config["flow_loss"] = flow_loss
-        logger.experiment.config["max_epoch"] = max_epoch
-        logger.experiment.config["series_len"] = series_len
-        logger.experiment.config["series_reg"] = series_reg
-        logger.experiment.config["optimizer"] = optimizer_name
-        logger.experiment.config["lr"] = str(lr)
         trainer_logger = [logger]
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath="model_weights/",
-        filename=f"{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-{series_len}-{max_epoch}-"
-                 "{epoch}-{val_loss:.5f}",
+        filename=f"{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-{series_reg}-{target_type}-"
+                 f"{max_epoch}-{series_len}-{max_epoch}-"
+                 "{epoch}-{val_loss:.8f}",
         save_top_k=5,
     )
 
@@ -159,12 +165,15 @@ def main():
     subparsers = parser.add_subparsers(dest="command")
 
     train_parser = subparsers.add_parser("train", help="Train the model")
+    train_parser.add_argument("--optimizer", default="adam", help="Optimizer for the training")
+    train_parser.add_argument("--lr", default="1e-4", help="Learning rate")
+    train_parser.add_argument("--reg_type", default="volume", help="Volume or time series (volume, series)")
+    train_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
+    train_parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
+    train_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
     train_parser.add_argument("model_name", help="The name of the model")
     train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
-    train_parser.add_argument("max_epoch", help="The maximum number of epochs")
-    train_parser.add_argument("series_len", help="The length of the series, e.g. 192")
-    train_parser.add_argument("reg_type", help="Volume or time series (volume, series)")
 
     test_parser = subparsers.add_parser("test", help="Test the model")
     test_parser.add_argument("model_name", help="The name of the model")

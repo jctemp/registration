@@ -11,6 +11,7 @@ class TransMorphModule(pl.LightningModule):
             criterion_flow=None,
             optimizer=None,
             lr=None,
+            target_type=None,
     ):
         super().__init__()
         self.net = net
@@ -18,16 +19,10 @@ class TransMorphModule(pl.LightningModule):
         self.criterion_flow = criterion_flow
         self.optimizer = optimizer
         self.lr = lr
+        self.target_type = target_type
 
-    def _get_preds_loss(self, batch):
-
-        if self.criterion_image is None:
-            raise Exception("criterion_image is None")
-        elif self.criterion_flow is None:
-            raise Exception("criterion_flow is None")
-
+    def _get_pred_last_loss(self, batch):
         # always use last image in a seq. (B,C,W,H)
-        # TODO: determine strategy to select target
         target = batch[:, :, :, :, -1]
         outputs, flows = self.net(batch)
         loss = 0
@@ -41,6 +36,22 @@ class TransMorphModule(pl.LightningModule):
         loss += loss_fn(flows) * w
 
         return loss, target, outputs, flows
+
+    def _get_preds_loss(self, batch):
+
+        if self.criterion_image is None:
+            raise Exception("criterion_image is None")
+        elif self.criterion_flow is None:
+            raise Exception("criterion_flow is None")
+        elif self.target_type is None:
+            raise Exception("target_type is None")
+
+        if self.target_type == "last":
+            return self._get_pred_last_loss(batch)
+        elif self.target_type == "mean":
+            raise NotImplementedError("mean loss not implemented")
+        else:
+            raise NotImplementedError("group loss not implemented")
 
     def training_step(self, batch, _):
         loss, _, _, _ = self._get_preds_loss(batch)
