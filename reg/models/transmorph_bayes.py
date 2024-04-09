@@ -83,7 +83,7 @@ class TransMorphBayes(nn.Module):
 
         self.reg_head = RegistrationHead(
             in_channels=config.reg_head_chan,
-            out_channels=self.img_dims,
+            out_channels=3,
             kernel_size=3,
         )
 
@@ -94,7 +94,7 @@ class TransMorphBayes(nn.Module):
             kernel_size=3,
         )
 
-        self.spatial_trans = SpatialTransformer(self.shape)
+        self.spatial_trans = SpatialTransformer(config.img_size)
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):

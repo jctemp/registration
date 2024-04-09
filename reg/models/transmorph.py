@@ -76,17 +76,17 @@ class TransMorph(nn.Module):
         self.c2 = Conv3dReLU(config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False)
 
         # Let the registration head predict a 2D DVF
-        self.img_dims = len(config.img_size[:-1])
-        self.time_dim = config.img_size[-1]
-        self.shape = config.img_size[:-1]
+        # self.img_dims = len(config.img_size[:-1])
+        # self.time_dim = config.img_size[-1]
+        # self.shape = config.img_size[:-1]
 
         self.reg_head = RegistrationHead(
             in_channels=config.reg_head_chan,
-            out_channels=self.img_dims,
+            out_channels=3,
             kernel_size=3,
         )
 
-        self.spatial_trans = SpatialTransformer(self.shape)
+        self.spatial_trans = SpatialTransformer(config.img_size)
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):
