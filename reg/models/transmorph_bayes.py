@@ -1,6 +1,7 @@
 from .modules.swin_transformer import SwinTransformer
-from .modules.spatial_transformer import SpatialTransformer, SpatialTransformerSeries
+from .modules.spatial_transformer import SpatialTransformer
 from .modules.conv_layers import Conv3dReLU, DecoderBlock, RegistrationHead, SigmaHead
+import torch
 import torch.nn as nn
 import torch.nn.functional as nnf
 
@@ -75,20 +76,25 @@ class TransMorphBayes(nn.Module):
         self.c1 = Conv3dReLU(config.in_chans, embed_dim // 2, 3, 1, use_batchnorm=False)
         self.c2 = Conv3dReLU(config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False)
 
-        # the network outputs mu and sigma for calculating negative log likelihood
+        # Let the registration head predict a 2D DVF
+        self.img_dims = len(config.img_size[:-1])
+        self.time_dim = config.img_size[-1]
+        self.shape = config.img_size[:-1]
+
         self.reg_head = RegistrationHead(
             in_channels=config.reg_head_chan,
-            out_channels=2,
+            out_channels=self.img_dims,
             kernel_size=3,
         )
 
+        # the network outputs mu and sigma for calculating negative log likelihood
         self.sigma_head = SigmaHead(
             in_channels=config.reg_head_chan,
             out_channels=1,
             kernel_size=3,
         )
 
-        self.spatial_trans = SpatialTransformerSeries(config.img_size)
+        self.spatial_trans = SpatialTransformer(self.shape)
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):
@@ -120,6 +126,6 @@ class TransMorphBayes(nn.Module):
         x = self.up4(x, f5)
 
         flow = self.reg_head(x)
-        out = self.spatial_trans(source, flow)
+        out = torch.tensor([self.spatial_trans(source[i], flow[i]) for i in range(self.time_dim)])
 
         return out, flow
