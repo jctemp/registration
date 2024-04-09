@@ -74,9 +74,10 @@ class TransMorph(nn.Module):
         self.c1 = Conv3dReLU(config.in_chans, embed_dim // 2, 3, 1, use_batchnorm=False)
         self.c2 = Conv3dReLU(config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False)
 
+        # Let the registration head predict a 2D DVF
         self.reg_head = RegistrationHead(
             in_channels=config.reg_head_chan,
-            out_channels=3,
+            out_channels=2,
             kernel_size=3,
         )
 

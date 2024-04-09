@@ -78,7 +78,7 @@ class TransMorphBayes(nn.Module):
         # the network outputs mu and sigma for calculating negative log likelihood
         self.reg_head = RegistrationHead(
             in_channels=config.reg_head_chan,
-            out_channels=3,
+            out_channels=2,
             kernel_size=3,
         )
 
