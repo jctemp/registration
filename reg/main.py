@@ -39,12 +39,11 @@ def reg_train(args):
     series_len = int(args.series_len)
     series_reg = True if str.lower(args.reg_type) == "series" else False
     optimizer_name = "adam"
-    lr = "1e-4"
+    lr = float("1e-4")
 
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
     optimizer = CONFIGS_OPTIMIZER[optimizer_name]
-    lr = float(lr)
 
     # Model
     config = CONFIGS[model_name]
@@ -76,7 +75,7 @@ def reg_train(args):
         logger.experiment.config["series_len"] = series_len
         logger.experiment.config["series_reg"] = series_reg
         logger.experiment.config["optimizer"] = optimizer_name
-        logger.experiment.config["series_reg"] = str(lr)
+        logger.experiment.config["lr"] = str(lr)
         trainer_logger = [logger]
 
     checkpoint_callback = ModelCheckpoint(
