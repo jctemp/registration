@@ -91,6 +91,8 @@ class TransMorph(nn.Module):
 
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
+        self.series_reg = config.series_reg
+
     def forward(self, x):
         # [batch, channel, W, H, L]
         source = x.clone()
