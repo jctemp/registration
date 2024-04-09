@@ -1,7 +1,6 @@
 from .modules.swin_transformer import SwinTransformer
-from .modules.spatial_transformer import SpatialTransformer
+from .modules.spatial_transformer import SpatialTransformer, SpatialTransformerSeries
 from .modules.conv_layers import Conv3dReLU, DecoderBlock, RegistrationHead
-import torch
 import torch.nn as nn
 
 
@@ -75,18 +74,21 @@ class TransMorph(nn.Module):
         self.c1 = Conv3dReLU(config.in_chans, embed_dim // 2, 3, 1, use_batchnorm=False)
         self.c2 = Conv3dReLU(config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False)
 
-        # Let the registration head predict a 2D DVF
-        # self.img_dims = len(config.img_size[:-1])
-        # self.time_dim = config.img_size[-1]
-        # self.shape = config.img_size[:-1]
-
-        self.reg_head = RegistrationHead(
+        self.reg_head3d = RegistrationHead(
             in_channels=config.reg_head_chan,
             out_channels=3,
             kernel_size=3,
         )
 
+        self.reg_head2d = RegistrationHead(
+            in_channels=config.reg_head_chan,
+            out_channels=2,
+            kernel_size=3,
+        )
+
+        self.spatial_series_trans = SpatialTransformerSeries(config.img_size)
         self.spatial_trans = SpatialTransformer(config.img_size)
+
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):

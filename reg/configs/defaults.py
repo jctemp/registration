@@ -7,6 +7,7 @@ def get_transmorph_only_config():
     config.if_convskip = True
     config.reg_head_chan = 16
     config.img_size = (256, 256, 192)
+    config.series_reg = True
     return config
 
 
