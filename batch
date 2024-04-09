@@ -21,7 +21,7 @@ parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
 
 args = parser.parse_args()
 
-run = (f"{args.model_name}-{args.image_loss}-{args.flow_loss}-{args.optimizer_name}-{args.lr}-{args.reg_type}-"
+run = (f"{args.model_name}-{args.image_loss}-{args.flow_loss}-{args.optimizer}-{args.lr}-{args.reg_type}-"
        f"{args.target_type}-{args.max_epoch}-{args.series_len}-{args.max_epoch}")
 
 # Build bash script
