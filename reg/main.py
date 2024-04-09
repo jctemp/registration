@@ -25,6 +25,10 @@ CONFIGS_FLOW_LOSS = {
     "bel": BEL(normalize=True),
 }
 
+CONFIGS_OPTIMIZER = {
+    "adam": torch.optim.Adam
+}
+
 
 def reg_train(args):
     # Hyper Parameters
@@ -34,11 +38,13 @@ def reg_train(args):
     max_epoch = int(args.max_epoch)
     series_len = int(args.series_len)
     series_reg = True if str.lower(args.reg_type) == "series" else False
+    optimizer_name = "adam"
+    lr = "1e-4"
 
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
-    optimizer = torch.optim.Adam
-    lr = 1e-4
+    optimizer = CONFIGS_OPTIMIZER[optimizer_name]
+    lr = float(lr)
 
     # Model
     config = CONFIGS[model_name]
@@ -62,7 +68,16 @@ def reg_train(args):
     trainer_logger = None
 
     if args.log:
-        trainer_logger = [WandbLogger(project="lung-registration-transmorph")]
+        logger = WandbLogger(project="lung-registration-transmorph")
+        logger.experiment.config["model_name"] = model_name
+        logger.experiment.config["image_loss"] = image_loss
+        logger.experiment.config["flow_loss"] = flow_loss
+        logger.experiment.config["max_epoch"] = max_epoch
+        logger.experiment.config["series_len"] = series_len
+        logger.experiment.config["series_reg"] = series_reg
+        logger.experiment.config["optimizer"] = optimizer_name
+        logger.experiment.config["series_reg"] = str(lr)
+        trainer_logger = [logger]
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",

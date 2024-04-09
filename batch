@@ -4,7 +4,7 @@ import argparse
 import os
 
 parser = argparse.ArgumentParser(description="CLI for Batching")
-parser.add_argument("--cpu" , type=int, default=8, help="The number of CPUs")
+parser.add_argument("--cpu", type=int, default=8, help="The number of CPUs")
 parser.add_argument("--mem", type=str, default=32, help="The memory in GB")
 parser.add_argument("--gpu", type=int, default=2, help="The number of GPUs")
 parser.add_argument("--ckpt", type=str, default=None, help="The path to the checkpoint file")
@@ -22,8 +22,8 @@ args = parser.parse_args()
 bash_script = f"""#!/bin/bash
 #
 #SBATCH --job-name=registration_job_gpu
-#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_job_gpu_out.txt
-#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_job_gpu_err.txt
+#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_{args.model_name}-{args.image_loss}-{args.flow_loss}-{args.max_epoch}-{args.series_len}-{args.reg_type}_out.txt
+#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_{args.model_name}-{args.image_loss}-{args.flow_loss}-{args.max_epoch}-{args.series_len}-{args.reg_type}_err.txt
 #SBATCH --time=7-00:00:00
 #
 #SBATCH --cpus-per-task={args.cpu}
