@@ -126,6 +126,7 @@ class TransMorphBayes(nn.Module):
         x = self.up4(x, f5)
 
         flow = self.reg_head(x)
-        out = torch.tensor([self.spatial_trans(source[i], flow[i]) for i in range(self.time_dim)])
+        out = torch.stack([self.spatial_trans(source[..., i], flow[..., i]) for i in range(self.time_dim)],
+                          dim=len(source.shape) - 1)
 
         return out, flow
