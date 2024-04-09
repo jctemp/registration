@@ -1,5 +1,5 @@
 from .modules.swin_transformer import SwinTransformer
-from .modules.spatial_transformer import SpatialTransformer
+from .modules.spatial_transformer import SpatialTransformer, SpatialTransformerSeries
 from .modules.conv_layers import Conv3dReLU, DecoderBlock, RegistrationHead, SigmaHead
 import torch.nn as nn
 import torch.nn.functional as nnf
@@ -88,7 +88,7 @@ class TransMorphBayes(nn.Module):
             kernel_size=3,
         )
 
-        self.spatial_trans = SpatialTransformer(config.img_size)
+        self.spatial_trans = SpatialTransformerSeries(config.img_size)
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):
