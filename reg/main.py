@@ -1,8 +1,12 @@
-from metrics import *
 from models.transmorph import TransMorph
+from models.transmorph_bayes import TransMorphBayes
+from models.transmorph_bspline import TransMorphBspline
+
 from configs.transmorph import CONFIGS as CONFIG_DEFAULT
 from configs.transmorph_bayes import CONFIGS as CONFIG_BAYES
 from configs.transmorph_bspline import CONFIGS as CONFIG_BSPLINE
+
+from metrics import *
 from model import TransMorphModule
 from dataset import LungDataModule
 
@@ -62,7 +66,13 @@ def reg_train(args):
 
     print(config)
 
-    tm_model = TransMorph(config)
+    if "bayes" in model_name:
+        tm_model = TransMorphBayes(config)
+    elif "bspline" in model_name:
+        tm_model = TransMorphBspline(config)
+    else:
+        tm_model = TransMorph(config)
+
     model = TransMorphModule(
         net=tm_model,
         optimizer=optimizer,
