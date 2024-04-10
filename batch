@@ -35,6 +35,7 @@ bash_script = f"""#!/bin/bash
 #SBATCH --cpus-per-task={args.cpu}
 #SBATCH --mem={args.mem}GB
 #SBATCH --partition leinegpu_long
+#SBATCH --nodelist leinewra100
 #SBATCH --gres=gpu:{args.gpu}
 #SBATCH --mail-user=jamie.temple@stud.hs-hannover.de
 #SBATCH --mail-type=ALL
