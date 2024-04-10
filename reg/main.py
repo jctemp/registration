@@ -199,6 +199,7 @@ def main():
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
 
     test_parser = subparsers.add_parser("test", help="Test the model")
+    test_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
     test_parser.add_argument("model_name", help="The name of the model")
     test_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     test_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
