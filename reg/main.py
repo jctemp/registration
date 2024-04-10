@@ -67,14 +67,14 @@ def reg_train(args):
     print(config)
 
     if "bayes" in model_name:
-        tm_model = TransMorphBayes(config)
+        net = TransMorphBayes(config)
     elif "bspline" in model_name:
-        tm_model = TransMorphBspline(config)
+        net = TransMorphBspline(config)
     else:
-        tm_model = TransMorph(config)
+        net = TransMorph(config)
 
     model = TransMorphModule(
-        net=tm_model,
+        net=net,
         optimizer=optimizer,
         lr=lr,
         criterion_image=criterion_image,
@@ -140,15 +140,15 @@ def reg_test(args):
     # Model
     config = CONFIG_TM[model_name]
     if "bayes" in model_name:
-        tm_model = TransMorphBayes(config)
+        net = TransMorphBayes(config)
     elif "bspline" in model_name:
-        tm_model = TransMorphBspline(config)
+        net = TransMorphBspline(config)
     else:
-        tm_model = TransMorph(config)
+        net = TransMorph(config)
     model = TransMorphModule.load_from_checkpoint(
         args.path_to_ckpt,
         strict=False,
-        tm_model=tm_model,
+        net=net,
         criterion_image=criterion_image,
         criterion_flow=criterion_flow,
     )
