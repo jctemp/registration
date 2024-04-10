@@ -16,7 +16,7 @@ import torch
 
 CONFIGS_IMAGE_LOSS = {
     "mse": MSE(),
-    "ncc": NCC(spatial_dims=1),
+    "ncc": NCC(spatial_dims=2),
     "gmi": GMI(),
 }
 
