@@ -138,7 +138,13 @@ def reg_test(args):
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
 
     # Model
-    tm_model = TransMorph(CONFIGS[model_name])
+    config = CONFIG_TM[model_name]
+    if "bayes" in model_name:
+        tm_model = TransMorphBayes(config)
+    elif "bspline" in model_name:
+        tm_model = TransMorphBspline(config)
+    else:
+        tm_model = TransMorph(config)
     model = TransMorphModule.load_from_checkpoint(
         args.path_to_ckpt,
         strict=False,
