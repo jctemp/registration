@@ -136,6 +136,7 @@ def reg_test(args):
     flow_loss, flow_loss_weight = str.split(args.flow_loss, ":")
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
+    target_type = str.lower(args.target_type)
 
     # Model
     config = CONFIG_TM[model_name]
@@ -151,6 +152,7 @@ def reg_test(args):
         net=net,
         criterion_image=criterion_image,
         criterion_flow=criterion_flow,
+        target_type=target_type,
     )
 
     # Trainer
