@@ -54,7 +54,6 @@ def get_swin_default_config():
     config.use_checkpoint = False
     config.pat_merg_rf = 4
     config.mc_drop = 0.15
-    config.use_mc = False
     return config
 
 
