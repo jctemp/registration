@@ -1,6 +1,9 @@
+from .models.transmorph import TransMorph
+from .models.transmorph_bayes import TransMorphBayes
+from .metrics import jacobian_det
+
 import pytorch_lightning as pl
 import numpy as np
-from metrics import jacobian_det
 
 
 class TransMorphModule(pl.LightningModule):
@@ -24,7 +27,13 @@ class TransMorphModule(pl.LightningModule):
     def _get_pred_last_loss(self, batch):
         # always use last image in a seq. (B,C,W,H)
         target = batch[:, :, :, :, -1]
-        outputs, flows = self.net(batch)
+
+        non_diff = isinstance(self.net, (TransMorph, TransMorphBayes))
+        if non_diff:
+            outputs, flows = self.net(batch)
+        else:
+            outputs, flows, disp = self.net(batch)
+
         loss = 0
 
         loss_fn, w = self.criterion_image
@@ -33,6 +42,10 @@ class TransMorphModule(pl.LightningModule):
 
         loss_fn, w = self.criterion_flow
         loss += loss_fn(flows) * w
+
+        if not non_diff:
+            # TODO: implement loss function incorporating displacement
+            pass
 
         return loss, target, outputs, flows
 

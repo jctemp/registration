@@ -1,18 +1,21 @@
+from .metrics import *
+from .models.transmorph import TransMorph
+from .configs.transmorph import CONFIGS as CONFIG_DEFAULT
+from .configs.transmorph_bayes import CONFIGS as CONFIG_BAYES
+from .configs.transmorph_bspline import CONFIGS as CONFIG_BSPLINE
+from .model import TransMorphModule
+from .dataset import LungDataModule
+
 import argparse
 import sys
-
-from models.transmorph import TransMorph
-from configs.transmorph import CONFIGS
-from metrics import *
-
-from model import TransMorphModule
-from dataset import LungDataModule
 
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
 import pytorch_lightning as pl
 import torch
+
+CONFIG_TM = CONFIG_DEFAULT | CONFIG_BAYES | CONFIG_BSPLINE
 
 CONFIGS_IMAGE_LOSS = {
     "mse": MSE(),
@@ -49,7 +52,7 @@ def reg_train(args):
     optimizer = CONFIGS_OPTIMIZER[optimizer_name]
 
     # Model
-    config = CONFIGS[model_name]
+    config = CONFIG_TM[model_name]
     config.img_size = (*config.img_size[:-1], series_len)
     config.series_reg = series_reg
 
