@@ -15,7 +15,10 @@ from pytorch_lightning.loggers import WandbLogger
 import pytorch_lightning as pl
 import torch
 
-CONFIG_TM = CONFIG_DEFAULT | CONFIG_BAYES | CONFIG_BSPLINE
+CONFIG_TM = {}
+CONFIG_TM.update(CONFIG_DEFAULT)
+CONFIG_TM.update(CONFIG_BAYES)
+CONFIG_TM.update(CONFIG_BSPLINE)
 
 CONFIGS_IMAGE_LOSS = {
     "mse": MSE(),
