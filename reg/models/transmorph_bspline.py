@@ -1,6 +1,6 @@
-from modules.swin_transformer import SwinTransformer
-from modules.conv_layers import Conv3dReLU, DecoderBlock
-from modules.transformation import CubicBSplineFFDTransform, warp
+from .modules.swin_transformer import SwinTransformer
+from .modules.conv_layers import Conv3dReLU, DecoderBlock
+from .modules.transformation import CubicBSplineFFDTransform, warp
 
 import math
 import torch.nn as nn
