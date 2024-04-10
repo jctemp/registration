@@ -1,6 +1,6 @@
-from .models.transmorph import TransMorph
-from .models.transmorph_bayes import TransMorphBayes
-from .metrics import jacobian_det
+from models.transmorph import TransMorph
+from models.transmorph_bayes import TransMorphBayes
+from metrics import jacobian_det
 
 import pytorch_lightning as pl
 import numpy as np

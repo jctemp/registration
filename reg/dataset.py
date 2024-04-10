@@ -1,8 +1,8 @@
-import glob, torch
+import glob
+import torch
 import numpy as np
-import scipy.io as spio
 import pytorch_lightning as pl
-
+import scipy.io as spio
 from torch.utils.data import Dataset, DataLoader, random_split
 
 
