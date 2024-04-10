@@ -1,13 +1,34 @@
 import ml_collections
 
 
-def get_transmorph_only_config():
+def get_default():
     config = ml_collections.ConfigDict()
+    config.img_size = (256, 256, 192)
     config.if_transskip = True
     config.if_convskip = True
+    return config
+
+
+def get_transmorph_only_config():
+    config = ml_collections.ConfigDict()
+    config.update(get_default())
     config.reg_head_chan = 16
-    config.img_size = (256, 256, 192)
     config.series_reg = False
+    return config
+
+
+def get_transmorph_bayes_config():
+    config = ml_collections.ConfigDict()
+    config.update(get_transmorph_only_config())
+    config.mc_drop = 0.153
+    return config
+
+
+def get_transmorph_bspline_config():
+    config = ml_collections.ConfigDict()
+    config.update(get_default())
+    config.cps = (3, 3, 3)
+    config.resize_channels = (32, 32)
     return config
 
 
