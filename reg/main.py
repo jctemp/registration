@@ -104,7 +104,7 @@ def reg_train(args):
         monitor="val_loss",
         dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-{series_reg}-"
                 f"{target_type}-{max_epoch}-{series_len}-{max_epoch}",
-        filename="{val_loss:.8f}-{epoch}",
+        filename="{val_loss:.8f}&{epoch}",
         save_top_k=5,
     )
 

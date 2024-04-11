@@ -81,6 +81,7 @@
           pythonPackages.torchinfo
           pythonPackages.pytorch-lightning
 
+          pythonPackages.scikit-image
           pythonPackages.torchio
           pythonPackages.monai
           pythonPackages.wandb
