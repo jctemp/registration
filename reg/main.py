@@ -103,7 +103,7 @@ def reg_train(args):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-{series_reg}-"
-                f"{target_type}-{max_epoch}-{series_len}-{max_epoch}",
+                f"{target_type}-{max_epoch}-{series_len}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=5,
     )
