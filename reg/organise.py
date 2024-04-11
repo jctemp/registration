@@ -48,7 +48,7 @@ def main():
                 os.mkdir(group_dir)
             for path in paths:
                 file_name = os.path.basename(path)
-                file_name.strip(group_name + "-")
+                file_name.removeprefix(group_name + "-")
                 os.rename(path, os.path.join(group_dir, file_name))
 
 

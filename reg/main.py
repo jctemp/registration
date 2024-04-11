@@ -19,7 +19,6 @@ import torch
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
-
 CONFIG_TM = {}
 CONFIG_TM.update(CONFIG_DEFAULT)
 CONFIG_TM.update(CONFIG_BAYES)
@@ -103,10 +102,9 @@ def reg_train(args):
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath="model_weights/",
-        filename=f"{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-{series_reg}-{target_type}-"
-                 f"{max_epoch}-{series_len}-{max_epoch}-"
-                 "{epoch}-{val_loss:.8f}",
+        dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-{series_reg}-"
+                f"{target_type}-{max_epoch}-{series_len}-{max_epoch}",
+        filename="{val_loss:.8f}-{epoch}",
         save_top_k=5,
     )
 
