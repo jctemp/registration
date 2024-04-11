@@ -23,11 +23,13 @@ def main():
     parser = argparse.ArgumentParser("CLI to create evaluation")
     parser.add_argument("csv_file")
     parser.add_argument("directory")
+    parser.add_argument("selected_model")
     args = parser.parse_args()
 
     dir_name = Path(args.directory)
     dir_res = dir_name / "results"
     csv_file = Path(args.csv_file)
+    selected_model = int(args.selected_model)
 
     config_tm = {}
     config_tm.update(CONFIG_DEFAULT)
@@ -63,77 +65,91 @@ def main():
             best = group_dir / file_names[0]
             models_param[run] = group_name, best
 
-    for run, (gn, ckpt) in models_param.items():
-        model_name, image_loss, flow_loss, optimizer_name, lr, series_reg, target_type, max_epoch, series_len = run
-        series_reg = bool(series_reg)
-        series_len = int(series_len)
+    run, gn, ckpt = None, None, None
+    for i, (run, (gn, ckpt)) in enumerate(models_param.items()):
+        if i == selected_model:
+            break
 
-        print(f" run: {run}")
-        print(f"  gn: {gn}")
-        print(f"ckpt: {ckpt}")
+    model_name, image_loss, flow_loss, optimizer_name, lr, series_reg, target_type, max_epoch, series_len = run
+    series_reg = bool(series_reg)
+    series_len = int(series_len)
 
-        data_module = LungDataModule(batch_size=1, num_workers=4, pin_memory=True, mod="norm", series_len=series_len)
-        data_module.setup()
-        data = data_module.test_dataloader()
+    print(f" run: {run}")
+    print(f"  gn: {gn}")
+    print(f"ckpt: {ckpt}")
 
-        config = config_tm[model_name]
-        config.img_size = (*config.img_size[:-1], series_len)
-        config.series_reg = series_reg
+    data_module = LungDataModule(batch_size=1, num_workers=4, pin_memory=True, mod="norm", series_len=series_len)
+    data_module.setup()
+    data = data_module.test_dataloader()
 
-        model = TransMorphModule.load_from_checkpoint(str(ckpt), strict=False, net=TransMorph(config))
-        trainer = pl.Trainer()
+    config = config_tm[model_name]
+    config.img_size = (*config.img_size[:-1], series_len)
+    config.series_reg = series_reg
 
-        torch.set_float32_matmul_precision("high")
-        predictions = trainer.predict(model, data)
+    model = TransMorphModule.load_from_checkpoint(str(ckpt), strict=False, net=TransMorph(config))
+    trainer = pl.Trainer()
 
-        num = 0
-        out, flow = predictions[num]
-        image_data = out[0, 0].detach().cpu()
-        target = image_data[:, :, -1]
-        image_data_diff = torch.stack([image_data[:, :, i] - target for i in range(series_len)], -1)
+    torch.set_float32_matmul_precision("high")
+    predictions = trainer.predict(model, data)
 
-        num_cols = 5
-        num_rows = 2
+    del model
+    del trainer
+    del data_module
+    del data
 
-        difference = torch.abs(image_data_diff)
-        top_k_values, top_k_indices = torch.topk(torch.sum(difference.flatten(start_dim=0, end_dim=-2), dim=0),
-                                                 num_cols)
+    num = 0
+    out, flow = predictions[num]
 
-        max_image_data = torch.index_select(image_data, -1, top_k_indices)
-        max_image_data_diff = torch.index_select(image_data_diff, -1, top_k_indices)
+    image_data = out[0, 0].detach().cpu()
+    target = image_data[:, :, -1]
+    image_data_diff = torch.stack([image_data[:, :, i] - target for i in range(series_len)], -1)
 
-        fig, axs = plt.subplots(num_rows, num_cols + 1, figsize=(2 * num_cols, 2 * num_rows), squeeze=False, dpi=300)
+    num_cols = 5
+    num_rows = 2
 
-        imgs = torchvision.utils.make_grid(max_image_data).permute(2, 0, 1)
-        axs[0, 0].imshow(np.asarray(target), cmap="gray")
-        axs[0, 0].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-        axs[0, 0].set_aspect("equal")
-        axs[0, 0].set_title("Ground Truth")
-        for i, img in enumerate(imgs):
-            i += 1
-            img = torch.abs(img.detach())
-            img = ttf.to_pil_image(img)
-            axs[0, i].imshow(np.asarray(img), cmap="gray")
-            axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-            axs[0, i].set_aspect("equal")
+    difference = torch.abs(image_data_diff)
+    top_k_values, top_k_indices = torch.topk(torch.sum(difference.flatten(start_dim=0, end_dim=-2), dim=0),
+                                             num_cols)
 
-        imgs = torchvision.utils.make_grid(max_image_data_diff).permute(2, 0, 1)
-        axs[1, 0].imshow(np.asarray(target - target), cmap="gray")
-        axs[1, 0].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-        axs[1, 0].set_aspect("equal")
-        axs[1, 0].set_title("Difference")
-        for i, img in enumerate(imgs):
-            i += 1
-            img = torch.abs(img.detach())
-            img = ttf.to_pil_image(img)
-            axs[1, i].imshow(np.asarray(img), cmap="gray")
-            axs[1, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
-            axs[1, i].set_aspect("equal")
+    max_image_data = torch.index_select(image_data, -1, top_k_indices)
+    max_image_data_diff = torch.index_select(image_data_diff, -1, top_k_indices)
 
-        fig.subplots_adjust(wspace=0, hspace=0)
-        fig.tight_layout()
-        fig.savefig(dir_res / f"{gn}-morph-diff.png")
-        fig.show()
+    fig, axs = plt.subplots(num_rows, num_cols + 1, figsize=(2 * num_cols, 2 * num_rows), squeeze=False, dpi=300)
+
+    imgs = torchvision.utils.make_grid(max_image_data).permute(2, 0, 1)
+    axs[0, 0].imshow(np.asarray(target), cmap="gray")
+    axs[0, 0].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+    axs[0, 0].set_aspect("equal")
+    axs[0, 0].set_title("Ground Truth")
+    for i, img in enumerate(imgs):
+        i += 1
+        img = torch.abs(img.detach())
+        img = ttf.to_pil_image(img)
+        axs[0, i].imshow(np.asarray(img), cmap="gray")
+        axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+        axs[0, i].set_aspect("equal")
+
+    imgs = torchvision.utils.make_grid(max_image_data_diff).permute(2, 0, 1)
+    axs[1, 0].imshow(np.asarray(target - target), cmap="gray")
+    axs[1, 0].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+    axs[1, 0].set_aspect("equal")
+    axs[1, 0].set_title("Difference")
+    for i, img in enumerate(imgs):
+        i += 1
+        img = torch.abs(img.detach())
+        img = ttf.to_pil_image(img)
+        axs[1, i].imshow(np.asarray(img), cmap="gray")
+        axs[1, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
+        axs[1, i].set_aspect("equal")
+
+    fig.subplots_adjust(wspace=0, hspace=0)
+    fig.tight_layout()
+    fig.savefig(dir_res / f"{gn}-morph-diff.png")
+    fig.show()
+    plt.close()
+
+    del predictions
+    del image_data
 
 
 if __name__ == "__main__":

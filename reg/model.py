@@ -67,27 +67,19 @@ class TransMorphModule(pl.LightningModule):
 
     def training_step(self, batch, _):
         loss, _, _, _ = self._get_preds_loss(batch)
-        self.log(
-            "train_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True
-        )
+        self.log("train_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True)
         return loss
 
     def validation_step(self, batch, _):
         loss, _, _, _ = self._get_preds_loss(batch)
-        self.log(
-            "val_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True,
-        )
+        self.log("val_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True, )
 
     def test_step(self, batch, _):
         loss, target, _, flows = self._get_preds_loss(batch)
-        self.log(
-            "test_loss", loss, on_step=False, on_epoch=True, logger=True, sync_dist=True
-        )
+        self.log("test_loss", loss, on_step=False, on_epoch=True, logger=True, sync_dist=True)
 
         tar = target.detach().cpu().numpy()[0, :, :, :]
-        jac_det = jacobian_det(
-            flows.detach().cpu().numpy()[0, :, :, :, :]
-        )
+        jac_det = jacobian_det(flows.detach().cpu().numpy()[0, :, :, :, :])
         neg_det = np.sum(jac_det <= 0) / np.prod(tar.shape)
         self.log("neg_det", neg_det)
 
