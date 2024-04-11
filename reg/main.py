@@ -44,7 +44,6 @@ def reg_train(args):
     # Hyper Parameters
     optimizer_name = str.lower(args.optimizer)
     lr = float(args.lr)
-    series_reg = True if str.lower(args.reg_type) == "series" else False
     target_type = str.lower(args.target_type)
     max_epoch = int(args.max_epoch)
     series_len = int(args.series_len)
@@ -61,7 +60,6 @@ def reg_train(args):
     # Model
     config = CONFIG_TM[model_name]
     config.img_size = (*config.img_size[:-1], series_len)
-    config.series_reg = series_reg
 
     print(config)
 
@@ -101,7 +99,7 @@ def reg_train(args):
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-{series_reg}-"
+        dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-"
                 f"{target_type}-{max_epoch}-{series_len}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=5,
