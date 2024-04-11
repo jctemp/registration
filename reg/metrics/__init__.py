@@ -1,20 +1,17 @@
-from .grad_loss import Grad as GL
+from .grad_loss import Grad2d as gl2d, Grad3d as gl3d
 from .jacobian_det import jacobian_det
 
-# from .ncc_loss import *
-
-from torch.nn import MSELoss as MSE
-from monai.losses import LocalNormalizedCrossCorrelationLoss as NCC
-from monai.losses import GlobalMutualInformationLoss as GMI
-from monai.losses import BendingEnergyLoss as BEL
+from torch.nn import MSELoss as mse
+from monai.losses import LocalNormalizedCrossCorrelationLoss as lncc
+from monai.losses import GlobalMutualInformationLoss as gmi
+from monai.losses import BendingEnergyLoss as bel
 
 __all__ = [
     "jacobian_det",
-    # Image (dis)similarity, input = (pred, target)
-    "MSE",
-    "NCC",
-    "GMI",
-    # Regulisation 
-    "GL",
-    "BEL",
+    "mse",
+    "lncc",
+    "gmi",
+    "gl2d",
+    "gl3d",
+    "bel",
 ]

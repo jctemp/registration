@@ -45,7 +45,7 @@ class DecoderBlock(nn.Module):
             kernel_size=3,
             padding=1,
             use_batchnorm=use_batchnorm,
-            )
+        )
         self.conv2 = Conv3dReLU(
             out_channels,
             out_channels,

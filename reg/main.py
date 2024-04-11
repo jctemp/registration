@@ -25,14 +25,14 @@ CONFIG_TM.update(CONFIG_BAYES)
 CONFIG_TM.update(CONFIG_BSPLINE)
 
 CONFIGS_IMAGE_LOSS = {
-    "mse": MSE(),
-    "ncc": NCC(spatial_dims=2),
-    "gmi": GMI(),
+    "mse": mse(),
+    "ncc": lncc(kernel_size=8),
+    "gmi": gmi(),
 }
 
 CONFIGS_FLOW_LOSS = {
-    "gl": GL(penalty="l2"),
-    "bel": BEL(normalize=True),
+    "gl3d": gl3d(penalty="l2"),
+    "bel": bel(normalize=True),
 }
 
 CONFIGS_OPTIMIZER = {
@@ -91,7 +91,6 @@ def reg_train(args):
         logger = WandbLogger(project="lung-registration-transmorph")
         logger.experiment.config["optimizer"] = optimizer_name
         logger.experiment.config["lr"] = str(lr)
-        logger.experiment.config["reg_type"] = series_reg
         logger.experiment.config["target_type"] = target_type
         logger.experiment.config["max_epoch"] = max_epoch
         logger.experiment.config["series_len"] = series_len
@@ -190,7 +189,6 @@ def main():
     train_parser = subparsers.add_parser("train", help="Train the model")
     train_parser.add_argument("--optimizer", default="adam", help="Optimizer for the training")
     train_parser.add_argument("--lr", default="1e-4", help="Learning rate")
-    train_parser.add_argument("--reg_type", default="volume", help="Volume or time series (volume, series)")
     train_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
     train_parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
     train_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")

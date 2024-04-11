@@ -136,13 +136,11 @@ class TransMorphBspline(nn.Module):
         # [batch, channel, W, H, L]
         source = x.clone()
 
-        f1, f2, f3, f4, f5 = None, None, None, None, None
+        f1, f2, f3, f4 = None, None, None, None
 
         if self.if_convskip:
-            x_s0 = x.clone()
             x_s1 = self.avg_pool(x)
             f4 = self.c1(x_s1)
-            f5 = self.c2(x_s0)
 
         out_feats = self.transformer(x)
 

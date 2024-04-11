@@ -13,7 +13,6 @@ def get_transmorph_only_config():
     config = ml_collections.ConfigDict()
     config.update(get_default())
     config.reg_head_chan = 16
-    config.series_reg = False
     return config
 
 
@@ -42,9 +41,7 @@ def get_swin_default_config():
     config.window_size = (5, 6, 7)
     config.mlp_ratio = 4
     config.qkv_bias = False
-    config.qk_scale = None
     config.drop_rate = 0
-    config.attn_drop_rate = 0
     config.drop_path_rate = 0.3
     config.ape = False
     config.spe = False
@@ -53,7 +50,6 @@ def get_swin_default_config():
     config.patch_norm = True
     config.use_checkpoint = False
     config.pat_merg_rf = 4
-    config.mc_drop = 0.15
     return config
 
 

@@ -1,6 +1,7 @@
 import torch
 
-# Copyright © 2024 voxelmorph
+
+# Copyright © 2024 Junyu Chen
 #
 # Licensed to the Apache Software Foundation (ASF) under one
 # or more contributor license agreements.  See the NOTICE file
@@ -25,44 +26,49 @@ import torch
 # Date: 2024-04-08
 
 
-class Grad(torch.nn.Module):
-    """
-    N-D gradient loss.
-    """
+class Grad2d(torch.nn.Module):
 
-    def __init__(self, penalty="l2"):
-        super().__init__()
-        assert (penalty == "l1" or penalty == "l2"), "penalty can only be l1 or l2. Got: %s" % self.penalty
+    def __init__(self, penalty='l1', loss_mult=None):
+        super(Grad2d, self).__init__()
         self.penalty = penalty
+        self.loss_mult = loss_mult
 
     def forward(self, flow):
-        y = flow
+        dy = torch.abs(flow[:, :, 1:, :] - flow[:, :, :-1, :])
+        dx = torch.abs(flow[:, :, :, 1:] - flow[:, :, :, :-1])
 
-        vol_shape = y.shape[2:]  # (batch, channel, ...)
-        n_dims = len(vol_shape)
+        if self.penalty == 'l2':
+            dy = dy * dy
+            dx = dx * dx
 
-        assert n_dims > 0, "Requires at least one spatial dimension."
+        d = torch.mean(dx) + torch.mean(dy)
+        grad = d / 2.0
 
-        df = [None] * n_dims
-        for i in range(n_dims):
+        if self.loss_mult is not None:
+            grad *= self.loss_mult
+        return grad
 
-            # compute gradient along dimension d
-            d = i + 2
-            # (d, 0, 1, ..., d-1, d+1, ..., n_dims + 1)
-            r = [d, *range(0, d), *range(d + 1, n_dims + 2)]
-            y = y.permute(r)
-            dfi = y[1:, ...] - y[:-1, ...]
 
-            # permute back
-            r = [*range(1, d + 1), 0, *range(d + 1, n_dims + 2)]
-            df[i] = dfi.permute(r)
+class Grad3d(torch.nn.Module):
 
-        if self.penalty == "l1":
-            dif = [torch.abs(f) for f in df]
-        else:
-            dif = [f * f for f in df]
+    def __init__(self, penalty='l1', loss_mult=None):
+        super(Grad3d, self).__init__()
+        self.penalty = penalty
+        self.loss_mult = loss_mult
 
-        d = [g.mean() for g in dif]
-        grad_loss = sum(d) / len(d)
+    def forward(self, flow):
+        dy = torch.abs(flow[:, :, 1:, :, :] - flow[:, :, :-1, :, :])
+        dx = torch.abs(flow[:, :, :, 1:, :] - flow[:, :, :, :-1, :])
+        dz = torch.abs(flow[:, :, :, :, 1:] - flow[:, :, :, :, :-1])
 
-        return grad_loss
+        if self.penalty == 'l2':
+            dy = dy * dy
+            dx = dx * dx
+            dz = dz * dz
+
+        d = torch.mean(dx) + torch.mean(dy) + torch.mean(dz)
+        grad = d / 3.0
+
+        if self.loss_mult is not None:
+            grad *= self.loss_mult
+        return grad
