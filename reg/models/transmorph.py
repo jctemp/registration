@@ -75,7 +75,7 @@ class TransMorph(nn.Module):
 
         self.reg_head2d = RegistrationHead(
             in_channels=config.reg_head_chan,
-            out_channels=3,
+            out_channels=2,
             kernel_size=3,
         )
 

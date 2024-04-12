@@ -31,10 +31,10 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
 
         loss_fn, w = self.criterion_image
-        loss += np.mean([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])]) * w
+        loss += torch.mean(torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
 
         loss_fn, w = self.criterion_flow
-        loss += np.mean([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])]) * w
+        loss += torch.mean(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
 
         if not non_diff:
             # TODO: implement loss function incorporating displacement
