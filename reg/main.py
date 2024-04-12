@@ -199,7 +199,7 @@ def main():
     train_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
     train_parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
     train_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
-    train_parser.add_argument("--loss_accum", default=192, help="Type of loss accumulation (mean, sum, max)")
+    train_parser.add_argument("--loss_accum", default="mean", help="Type of loss accumulation (mean, sum, max)")
     train_parser.add_argument("model_name", help="The name of the model")
     train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl2d:1")
