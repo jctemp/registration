@@ -31,7 +31,7 @@ CONFIGS_IMAGE_LOSS = {
 }
 
 CONFIGS_FLOW_LOSS = {
-    "gl3d": gl3d(penalty="l2"),
+    "gl2d": gl2d(penalty="l2"),
     "bel": bel(normalize=True),
 }
 

@@ -19,7 +19,8 @@ class TransMorphModule(pl.LightningModule):
 
     def _get_pred_last_loss(self, batch):
         # always use last image in a seq. (B,C,W,H)
-        targets = torch.repeat_interleave(batch[:, :, :, :, -1][:, :, :, :, None], batch.shape[-1], dim=-1)
+        # targets = torch.repeat_interleave(batch[:, :, :, :, -1][:, :, :, :, None], batch.shape[-1], dim=-1)
+        target = batch[:, :, :, :, -1]
 
         non_diff = isinstance(self.net, (TransMorph, TransMorphBayes))
         if non_diff:
@@ -30,16 +31,16 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
 
         loss_fn, w = self.criterion_image
-        loss += loss_fn(outputs, targets) * w
+        loss += np.mean([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])]) * w
 
         loss_fn, w = self.criterion_flow
-        loss += loss_fn(flows) * w
+        loss += np.mean([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])]) * w
 
         if not non_diff:
             # TODO: implement loss function incorporating displacement
             pass
 
-        return loss, targets, outputs, flows
+        return loss, target, outputs, flows
 
     def _get_preds_loss(self, batch):
 
@@ -67,10 +68,10 @@ class TransMorphModule(pl.LightningModule):
         self.log("val_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True, )
 
     def test_step(self, batch, _):
-        loss, targets, _, flows = self._get_preds_loss(batch)
+        loss, target, _, flows = self._get_preds_loss(batch)
         self.log("test_loss", loss, on_step=False, on_epoch=True, logger=True, sync_dist=True)
 
-        tar = targets.detach().cpu().numpy()[0, :, :, :, :]
+        tar = target.detach().cpu().numpy()[0, :, :, :, :]
         jac_det = jacobian_det(flows.detach().cpu().numpy()[0, :, :, :, :])
         neg_det = np.sum(jac_det <= 0) / np.prod(tar.shape)
         self.log("neg_det", neg_det)

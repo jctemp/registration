@@ -2,6 +2,7 @@ from .modules.swin_transformer import SwinTransformer
 from .modules.spatial_transformer import SpatialTransformer
 from .modules.conv_layers import Conv3dReLU, DecoderBlock, RegistrationHead
 
+import torch
 import torch.nn as nn
 
 
@@ -107,7 +108,8 @@ class TransMorph(nn.Module):
         x = self.up3(x, f4)
         x = self.up4(x, f5)
 
-        flow = self.reg_head3d(x)
-        out = self.spatial_trans(source, flow)
+        flow = self.reg_head2d(x)
+        out = torch.stack([self.spatial_trans(source[:, :, :, :, i], flow[:, :, :, :, i])[:, :, :, :, None] for i in
+                           range(source.shape[-1])], dim=-1)
 
         return out, flow
