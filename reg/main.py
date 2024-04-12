@@ -48,7 +48,6 @@ def reg_train(args):
     max_epoch = int(args.max_epoch)
     series_len = int(args.series_len)
     data_mod = args.data_mod if args.data_mod != "None" else None
-    loss_accum = args.loss_accum
 
     model_name = args.model_name
     image_loss, image_loss_weight = str.split(str.lower(args.image_loss), ":")
@@ -81,7 +80,6 @@ def reg_train(args):
         criterion_flow=criterion_flow,
         criterion_disp=criterion_disp,
         target_type=target_type,
-        loss_accumulation=loss_accum,  # mean, max, sum
     )
 
     # Trainer
@@ -101,13 +99,12 @@ def reg_train(args):
         logger.experiment.config["image_loss"] = image_loss
         logger.experiment.config["flow_loss"] = flow_loss
         logger.experiment.config["data_mod"] = data_mod
-        logger.experiment.config["loss_accum"] = loss_accum
         trainer_logger = [logger]
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-"
-                f"{target_type}-{max_epoch}-{series_len}-{data_mod}-{loss_accum}",
+                f"{target_type}-{max_epoch}-{series_len}-{data_mod}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=3,
     )
@@ -199,7 +196,6 @@ def main():
     train_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
     train_parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
     train_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
-    train_parser.add_argument("--loss_accum", default="mean", help="Type of loss accumulation (mean, sum, max)")
     train_parser.add_argument("model_name", help="The name of the model")
     train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl2d:1")

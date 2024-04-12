@@ -8,7 +8,7 @@ import torch
 
 class TransMorphModule(pl.LightningModule):
     def __init__(self, net, criterion_image=None, criterion_flow=None, criterion_disp=None, optimizer=torch.optim.Adam,
-                 lr=1e-4, target_type="last", loss_accumulation="mean"):
+                 lr=1e-4, target_type="last"):
         super().__init__()
         self.net = net
         self.criterion_image = criterion_image
@@ -17,7 +17,6 @@ class TransMorphModule(pl.LightningModule):
         self.optimizer = optimizer
         self.lr = lr
         self.target_type = target_type
-        self.loss_accumulation = loss_accumulation  # mean, sum, max, median
 
     def _get_pred_last_loss(self, batch):
         # always use last image in a seq. (B,C,W,H)
@@ -31,17 +30,16 @@ class TransMorphModule(pl.LightningModule):
             outputs, flows = self.net(batch)
 
         loss = 0
-        acc_fn = getattr(torch, self.loss_accumulation)
 
         loss_fn, w = self.criterion_image
-        loss += acc_fn(torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
+        loss += torch.mean(torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
 
         loss_fn, w = self.criterion_flow
-        loss += acc_fn(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
+        loss += torch.mean(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
 
         if is_diff:
             loss_fn, w = self.criterion_disp
-            loss += acc_fn(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
+            loss += torch.mean(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
 
         return loss, target, outputs, flows
 

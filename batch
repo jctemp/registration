@@ -15,7 +15,6 @@ parser.add_argument("--lr", default="1e-4", help="Learning rate")
 parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
 parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
 parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
-parser.add_argument("--loss_accum", default="mean", help="Type of loss accumulation (mean, sum, max)")
 parser.add_argument("model_name", help="The name of the model")
 parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
 parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
@@ -23,7 +22,7 @@ parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
 args = parser.parse_args()
 
 run = (f"{args.model_name}-{args.image_loss}-{args.flow_loss}-{args.optimizer}-{args.lr}-"
-       f"{args.target_type}-{args.max_epoch}-{args.series_len}-{args.max_epoch}-{args.data_mod}-{args.loss_accum}")
+       f"{args.target_type}-{args.max_epoch}-{args.series_len}-{args.max_epoch}-{args.data_mod}")
 
 # Build bash script
 bash_script = f"""#!/bin/bash
@@ -51,7 +50,6 @@ bash_script += (f"python main.py --log --devices {args.gpu} --num_workers {args.
                 f"--optimizer {args.optimizer} "
                 f"--lr {args.lr} "
                 f"--target_type {args.target_type} "
-                f"--loss_accum {args.loss_accum} "
                 f"--max_epoch {args.max_epoch} "
                 f"--series_len {args.series_len} ")
 
