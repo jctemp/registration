@@ -1,5 +1,5 @@
 from .modules.swin_transformer import SwinTransformer
-from .modules.spatial_transformer import SpatialTransformer
+from .modules.spatial_transformer import SpatialTransformer, SpatialTransformerSeries
 from .modules.conv_layers import Conv3dReLU, DecoderBlock, RegistrationHead
 
 import torch
@@ -73,6 +73,12 @@ class TransMorph(nn.Module):
         self.c1 = Conv3dReLU(config.in_chans, embed_dim // 2, 3, 1, use_batchnorm=False)
         self.c2 = Conv3dReLU(config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False)
 
+        self.reg_head2d = RegistrationHead(
+            in_channels=config.reg_head_chan,
+            out_channels=3,
+            kernel_size=3,
+        )
+
         self.reg_head3d = RegistrationHead(
             in_channels=config.reg_head_chan,
             out_channels=3,
@@ -80,6 +86,7 @@ class TransMorph(nn.Module):
         )
 
         self.spatial_trans = SpatialTransformer(config.img_size)
+        self.spatial_trans_series = SpatialTransformerSeries(config.img_size)
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):
@@ -109,7 +116,6 @@ class TransMorph(nn.Module):
         x = self.up4(x, f5)
 
         flow = self.reg_head2d(x)
-        out = torch.stack([self.spatial_trans(source[:, :, :, :, i], flow[:, :, :, :, i])[:, :, :, :, None] for i in
-                           range(source.shape[-1])], dim=-1)
+        out = self.spatial_trans_series(source, flow)
 
         return out, flow
