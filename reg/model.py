@@ -7,7 +7,7 @@ import torch
 
 
 class TransMorphModule(pl.LightningModule):
-    def __init__(self, net, criterion_image=None, criterion_flow=None, criterion_disp=None, optimizer=torch.optim.adam,
+    def __init__(self, net, criterion_image=None, criterion_flow=None, criterion_disp=None, optimizer=torch.optim.Adam,
                  lr=1e-4, target_type="last", loss_accumulation="mean"):
         super().__init__()
         self.net = net
@@ -46,10 +46,12 @@ class TransMorphModule(pl.LightningModule):
         return loss, target, outputs, flows
 
     def _get_preds_loss(self, batch):
+        is_diff = isinstance(self.net, TransMorphBspline)
+
         assert self.criterion_image is not None
         assert self.criterion_flow is not None
-        assert self.criterion_disp is not None
         assert self.target_type is not None
+        assert not is_diff or self.criterion_disp is not None
 
         if self.target_type == "last":
             return self._get_pred_last_loss(batch)

@@ -26,7 +26,7 @@ CONFIG_TM.update(CONFIG_BSPLINE)
 
 CONFIGS_IMAGE_LOSS = {
     "mse": mse(),
-    "ncc": lncc(kernel_size=7),
+    "ncc": lncc(kernel_size=7, spatial_dims=2),
     "gmi": gmi(),
 }
 
