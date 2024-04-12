@@ -55,6 +55,7 @@ def reg_train(args):
     # Prepare training
     criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
+    criterion_disp = None
     optimizer = CONFIGS_OPTIMIZER[optimizer_name]
 
     # Model
@@ -76,7 +77,9 @@ def reg_train(args):
         lr=lr,
         criterion_image=criterion_image,
         criterion_flow=criterion_flow,
+        criterion_disp=criterion_disp,
         target_type=target_type,
+        loss_accumulation="mean",  # max, sum
     )
 
     # Trainer
@@ -120,7 +123,8 @@ def reg_train(args):
     num_workers = 1 if args.num_workers is None else args.num_workers
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
-    datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True, series_len=series_len)
+    datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True,
+                                series_len=series_len, mod="norm")  # std, None
     trainer.fit(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 

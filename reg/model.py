@@ -1,5 +1,4 @@
-from models.transmorph import TransMorph
-from models.transmorph_bayes import TransMorphBayes
+from models.transmorph_bspline import TransMorphBspline
 from metrics import jacobian_det
 
 import pytorch_lightning as pl
@@ -8,48 +7,49 @@ import torch
 
 
 class TransMorphModule(pl.LightningModule):
-    def __init__(self, net, criterion_image=None, criterion_flow=None, optimizer=None, lr=None, target_type=None):
+    def __init__(self, net, criterion_image=None, criterion_flow=None, criterion_disp=None, optimizer=torch.optim.adam,
+                 lr=1e-4, target_type="last", loss_accumulation="mean"):
         super().__init__()
         self.net = net
         self.criterion_image = criterion_image
         self.criterion_flow = criterion_flow
+        self.criterion_disp = criterion_disp
         self.optimizer = optimizer
         self.lr = lr
         self.target_type = target_type
+        self.loss_accumulation = loss_accumulation  # mean, sum, max, median
 
     def _get_pred_last_loss(self, batch):
         # always use last image in a seq. (B,C,W,H)
         # targets = torch.repeat_interleave(batch[:, :, :, :, -1][:, :, :, :, None], batch.shape[-1], dim=-1)
         target = batch[:, :, :, :, -1]
 
-        non_diff = isinstance(self.net, (TransMorph, TransMorphBayes))
-        if non_diff:
-            outputs, flows = self.net(batch)
-        else:
+        is_diff = isinstance(self.net, TransMorphBspline)
+        if is_diff:
             outputs, flows, disp = self.net(batch)
+        else:
+            outputs, flows = self.net(batch)
 
         loss = 0
+        acc_fn = getattr(torch, self.loss_accumulation)
 
         loss_fn, w = self.criterion_image
-        loss += torch.mean(torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
+        loss += acc_fn(torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
 
         loss_fn, w = self.criterion_flow
-        loss += torch.mean(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
+        loss += acc_fn(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
 
-        if not non_diff:
-            # TODO: implement loss function incorporating displacement
-            pass
+        if is_diff:
+            loss_fn, w = self.criterion_disp
+            loss += acc_fn(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
 
         return loss, target, outputs, flows
 
     def _get_preds_loss(self, batch):
-
-        if self.criterion_image is None:
-            raise Exception("criterion_image is None")
-        elif self.criterion_flow is None:
-            raise Exception("criterion_flow is None")
-        elif self.target_type is None:
-            raise Exception("target_type is None")
+        assert self.criterion_image is not None
+        assert self.criterion_flow is not None
+        assert self.criterion_disp is not None
+        assert self.target_type is not None
 
         if self.target_type == "last":
             return self._get_pred_last_loss(batch)
