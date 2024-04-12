@@ -47,6 +47,8 @@ def reg_train(args):
     target_type = str.lower(args.target_type)
     max_epoch = int(args.max_epoch)
     series_len = int(args.series_len)
+    data_mod = args.data_mod if args.data_mod != "None" else None
+    loss_accum = args.loss_accum
 
     model_name = args.model_name
     image_loss, image_loss_weight = str.split(str.lower(args.image_loss), ":")
@@ -79,7 +81,7 @@ def reg_train(args):
         criterion_flow=criterion_flow,
         criterion_disp=criterion_disp,
         target_type=target_type,
-        loss_accumulation="mean",  # max, sum
+        loss_accumulation=loss_accum,  # mean, max, sum
     )
 
     # Trainer
@@ -98,14 +100,16 @@ def reg_train(args):
         logger.experiment.config["model_name"] = model_name
         logger.experiment.config["image_loss"] = image_loss
         logger.experiment.config["flow_loss"] = flow_loss
+        logger.experiment.config["data_mod"] = data_mod
+        logger.experiment.config["loss_accum"] = loss_accum
         trainer_logger = [logger]
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-"
-                f"{target_type}-{max_epoch}-{series_len}",
+                f"{target_type}-{max_epoch}-{series_len}-{data_mod}-{loss_accum}",
         filename="{val_loss:.8f}&{epoch}",
-        save_top_k=5,
+        save_top_k=3,
     )
 
     trainer = pl.Trainer(
@@ -124,7 +128,7 @@ def reg_train(args):
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
     datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                                series_len=series_len, mod="norm")  # std, None
+                                series_len=series_len, mod=data_mod)  # norm, std, None
     trainer.fit(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
@@ -185,6 +189,7 @@ def main():
     parser.add_argument("--devices", type=int, help="The number of available CUDA devices")
     parser.add_argument("--num_workers", type=int, help="The number of workers")
     parser.add_argument("--path_to_ckpt", help="Path to checkpoint file")
+    parser.add_argument("--data_mod", type=str, help="Type of modification to data (norm, std, None)")
 
     subparsers = parser.add_subparsers(dest="command")
 
@@ -194,9 +199,10 @@ def main():
     train_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
     train_parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
     train_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
+    train_parser.add_argument("--loss_accum", default=192, help="Type of loss accumulation (mean, sum, max)")
     train_parser.add_argument("model_name", help="The name of the model")
     train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
-    train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
+    train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl2d:1")
 
     test_parser = subparsers.add_parser("test", help="Test the model")
     test_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
