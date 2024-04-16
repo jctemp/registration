@@ -76,7 +76,11 @@ def jacobian_det(disp):
     """
 
     # check inputs
-    disp = disp.transpose(1, 2, 3, 0)
+    if disp.shape[0] == 2:
+        disp = disp.transpose(1, 2, 0)
+    else:
+        disp = disp.transpose(1, 2, 3, 0)
+
     volshape = disp.shape[:-1]
     nb_dims = len(volshape)
     assert len(volshape) in (2, 3), "flow has to be 2D or 3D"

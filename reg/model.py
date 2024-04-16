@@ -71,10 +71,14 @@ class TransMorphModule(pl.LightningModule):
         loss, target, _, flows = self._get_preds_loss(batch)
         self.log("test_loss", loss, on_step=False, on_epoch=True, logger=True, sync_dist=True)
 
-        tar = target.detach().cpu().numpy()[0, :, :, :, :]
-        jac_det = jacobian_det(flows.detach().cpu().numpy()[0, :, :, :, :])
-        neg_det = np.sum(jac_det <= 0) / np.prod(tar.shape)
-        self.log("neg_det", neg_det)
+        tar = target.detach().cpu().numpy()[0, :, :, :]
+        flows = flows.detach().cpu().numpy()[0, :, :, :, :]
+        jac_det_list = [jacobian_det(flows[:, :, :, i]) for i in range(flows.shape[-1])]
+        neg_det_list = [np.sum(jac_det <= 0) / np.prod(tar.shape) for jac_det in jac_det_list]
+        neg_det = np.mean(neg_det_list)
+        self.log("mean_neg_det", neg_det)
+
+        return loss, {"mean_neg_det": neg_det}
 
     def predict_step(self, batch, _):
         outputs, flows = self.net(batch)

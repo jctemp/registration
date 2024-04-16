@@ -97,14 +97,16 @@ def reg_train(args):
         logger.experiment.config["series_len"] = series_len
         logger.experiment.config["model_name"] = model_name
         logger.experiment.config["image_loss"] = image_loss
+        logger.experiment.config["image_loss_weight"] = image_loss_weight
         logger.experiment.config["flow_loss"] = flow_loss
+        logger.experiment.config["flow_loss_weight"] = flow_loss_weight
         logger.experiment.config["data_mod"] = data_mod
         trainer_logger = [logger]
 
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath=f"model_weights/{model_name}-{image_loss}-{flow_loss}-{optimizer_name}-{str(lr)}-"
-                f"{target_type}-{max_epoch}-{series_len}-{data_mod}",
+        dirpath=f"model_weights/{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-"
+                f"{optimizer_name}-{str(lr)}-{target_type}-{max_epoch}-{series_len}-{data_mod}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=3,
     )
