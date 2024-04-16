@@ -7,12 +7,12 @@ import torch
 
 
 class TransMorphModule(pl.LightningModule):
-    def __init__(self, net, criterion_image=None, criterion_flow=None, criterion_disp=None, optimizer=torch.optim.Adam,
+    def __init__(self, net, criteria_image=None, criteria_flow=None, criterion_disp=None, optimizer=torch.optim.Adam,
                  lr=1e-4, target_type="last"):
         super().__init__()
         self.net = net
-        self.criterion_image = criterion_image
-        self.criterion_flow = criterion_flow
+        self.criteria_image = criteria_image
+        self.criteria_flow = criteria_flow
         self.criterion_disp = criterion_disp
         self.optimizer = optimizer
         self.lr = lr
@@ -31,11 +31,12 @@ class TransMorphModule(pl.LightningModule):
 
         loss = 0
 
-        loss_fn, w = self.criterion_image
-        loss += torch.mean(torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
+        for loss_fn, w in self.criteria_image:
+            loss += torch.mean(
+                torch.stack([loss_fn(outputs[:, :, :, :, i], target) for i in range(outputs.shape[-1])])) * w
 
-        loss_fn, w = self.criterion_flow
-        loss += torch.mean(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
+        for loss_fn, w in self.criterion_flow:
+            loss += torch.mean(torch.stack([loss_fn(flows[:, :, :, :, i]) for i in range(flows.shape[-1])])) * w
 
         if is_diff:
             loss_fn, w = self.criterion_disp

@@ -5,6 +5,7 @@ from torch.nn import MSELoss as mse
 from monai.losses import LocalNormalizedCrossCorrelationLoss as lncc
 from monai.losses import GlobalMutualInformationLoss as gmi
 from monai.losses import BendingEnergyLoss as bel
+from monai.losses import SSIMLoss as ssmi
 
 __all__ = [
     "jacobian_det",
@@ -14,4 +15,5 @@ __all__ = [
     "gl2d",
     "gl3d",
     "bel",
+    "ssmi"
 ]

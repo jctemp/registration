@@ -28,6 +28,7 @@ CONFIGS_IMAGE_LOSS = {
     "mse": mse(),
     "ncc": lncc(kernel_size=7, spatial_dims=2),
     "gmi": gmi(),
+    "ssmi": ssmi(spatial_dims=2),
 }
 
 CONFIGS_FLOW_LOSS = {
@@ -50,12 +51,12 @@ def reg_train(args):
     data_mod = args.data_mod if args.data_mod != "None" else None
 
     model_name = args.model_name
-    image_loss, image_loss_weight = str.split(str.lower(args.image_loss), ":")
-    flow_loss, flow_loss_weight = str.split(str.lower(args.flow_loss), ":")
+    image_losses = [str.split(s, ":") for s in str.split(str.lower(args.image_loss), "&")]
+    flow_losses = [str.split(s, ":") for s in str.split(str.lower(args.flow_loss), "&")]
 
     # Prepare training
-    criterion_image = (CONFIGS_IMAGE_LOSS[image_loss], float(image_loss_weight))
-    criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
+    criteria_image = [(CONFIGS_IMAGE_LOSS[loss], float(weight)) for loss, weight in image_losses]
+    criteria_flow = [(CONFIGS_FLOW_LOSS[loss], float(weight)) for loss, weight in flow_losses]
     criterion_disp = None
     optimizer = CONFIGS_OPTIMIZER[optimizer_name]
 
@@ -76,8 +77,8 @@ def reg_train(args):
         net=net,
         optimizer=optimizer,
         lr=lr,
-        criterion_image=criterion_image,
-        criterion_flow=criterion_flow,
+        criteria_image=criteria_image,
+        criteria_flow=criteria_flow,
         criterion_disp=criterion_disp,
         target_type=target_type,
     )
@@ -96,16 +97,18 @@ def reg_train(args):
         logger.experiment.config["max_epoch"] = max_epoch
         logger.experiment.config["series_len"] = series_len
         logger.experiment.config["model_name"] = model_name
-        logger.experiment.config["image_loss"] = image_loss
-        logger.experiment.config["image_loss_weight"] = image_loss_weight
-        logger.experiment.config["flow_loss"] = flow_loss
-        logger.experiment.config["flow_loss_weight"] = flow_loss_weight
+        logger.experiment.config["image_loss"] = [loss for loss, weight in image_losses]
+        logger.experiment.config["image_loss_weight"] = [weight for loss, weight in image_losses]
+        logger.experiment.config["flow_loss"] = [loss for loss, weight in flow_losses]
+        logger.experiment.config["flow_loss_weight"] = [weight for loss, weight in flow_losses]
         logger.experiment.config["data_mod"] = data_mod
         trainer_logger = [logger]
 
+    image_loss_str = "&".join([f"{loss}={weight}" for loss, weight in image_losses])
+    flow_loss_str = "&".join([f"{loss}={weight}" for loss, weight in flow_losses])
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath=f"model_weights/{model_name}-{image_loss}={image_loss_weight}-{flow_loss}={flow_loss_weight}-"
+        dirpath=f"model_weights/{model_name}-{image_loss_str}-{flow_loss_str}-"
                 f"{optimizer_name}-{str(lr)}-{target_type}-{max_epoch}-{series_len}-{data_mod}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=3,
