@@ -31,7 +31,7 @@ def reader(path, end=None):
 
 class LungDataset(Dataset):
     def __init__(self, train=True, val=False, split=(0.8, 0.1), seed=42, series_len=None, mod="norm"):
-        assert series_len % 8 == 0, "series_len must be divisible by 8"
+        assert series_len is None or series_len % 8 == 0, "series_len must be divisible by 8"
         assert not (train and val), "Either train or val must be True, not both"
         assert mod == "norm" or mod == "std" or mod is None, "mod can be 'norm', 'std' or None"
 
