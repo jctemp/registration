@@ -36,6 +36,7 @@ def main():
     parser = argparse.ArgumentParser("CLI to create evaluation")
     parser.add_argument("ckpt_dir", type=str, help="Path to check points dir")
     parser.add_argument("save_dir", type=str, help="Path to figure save dir")
+    parser.add_argument("--test", default=False)
     parser.add_argument("--num_worker", default=1)
     parser.add_argument("--show-title", default=False)
     args = parser.parse_args()
@@ -92,7 +93,11 @@ def main():
     trainer = pl.Trainer()
 
     torch.set_float32_matmul_precision("high")
-    trainer.test(model, data_loader, verbose=True)
+
+    if args.test:
+        trainer.test(model, data_loader, verbose=True)
+        return
+
     predictions = trainer.predict(model, data_loader)
 
     nums = [10, 20, 30, 40, 50]
