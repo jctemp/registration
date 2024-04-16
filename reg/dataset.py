@@ -20,14 +20,17 @@ def standardize(image):
     return normalized
 
 
-def reader(path, end=192):
-    dcm = spio.loadmat(path)["dcm"][:end]
+def reader(path, end=None):
+    if end is None:
+        dcm = spio.loadmat(path)["dcm"]
+    else:
+        dcm = spio.loadmat(path)["dcm"][:end]
     data = np.transpose(dcm, (1, 2, 0))[None, :, :, :]  # C, W, H, t
     return data
 
 
 class LungDataset(Dataset):
-    def __init__(self, train=True, val=False, split=(0.8, 0.1), seed=42, series_len=192, mod="norm"):
+    def __init__(self, train=True, val=False, split=(0.8, 0.1), seed=42, series_len=None, mod="norm"):
         assert series_len % 8 == 0, "series_len must be divisible by 8"
         assert not (train and val), "Either train or val must be True, not both"
         assert mod == "norm" or mod == "std" or mod is None, "mod can be 'norm', 'std' or None"
@@ -70,7 +73,7 @@ class LungDataset(Dataset):
 
 
 class LungDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size=1, num_workers=1, pin_memory=True, seed=42, split=(0.8, 0.1), series_len=192,
+    def __init__(self, batch_size=1, num_workers=1, pin_memory=True, seed=42, split=(0.8, 0.1), series_len=None,
                  mod="norm"):
         super().__init__()
 

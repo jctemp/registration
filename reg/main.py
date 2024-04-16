@@ -130,7 +130,7 @@ def reg_train(args):
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
     datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                                series_len=series_len, mod=data_mod)  # norm, std, None
+                                series_len=None, mod=data_mod)  # norm, std, None
     trainer.fit(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
