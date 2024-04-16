@@ -1,7 +1,6 @@
 from pathlib2 import Path
 
 import argparse
-import numpy as np
 import matplotlib.pyplot as plt
 import pytorch_lightning as pl
 import torch
@@ -37,10 +36,12 @@ def main():
     parser = argparse.ArgumentParser("CLI to create evaluation")
     parser.add_argument("ckpt_dir", type=str, help="Path to check points dir")
     parser.add_argument("save_dir", type=str, help="Path to figure save dir")
-    parser.add_argument("--show-title")
+    parser.add_argument("--num_worker", default=1)
+    parser.add_argument("--show-title", default=False)
     args = parser.parse_args()
 
     show_title = args.show_title
+    num_worker = int(args.num_worker)
     ckpt_dir = Path(args.ckpt_dir)
     save_dir = Path(args.save_dir)
 
@@ -77,7 +78,8 @@ def main():
     criterion_flow = (CONFIGS_FLOW_LOSS[flow_loss], float(flow_loss_weight))
     criterion_disp = None
 
-    data_module = LungDataModule(batch_size=1, num_workers=4, pin_memory=False, mod=data_mod, series_len=series_len)
+    data_module = LungDataModule(batch_size=1, num_workers=num_worker, pin_memory=False, mod=data_mod,
+                                 series_len=series_len)
     data_module.setup()
     data_loader = data_module.test_dataloader()
 
@@ -143,11 +145,11 @@ def main():
 
         for i, (m, w, d, a) in enumerate(zip(k_moving, k_warped, k_dvf, k_abs_diff)):
             if show_title and i == 0:
-                axs[i * num_cols + 0].set(title="m")
-                axs[i * num_cols + 0].set(title="f")
-                axs[i * num_cols + 1].set(title="m * phi")
-                axs[i * num_cols + 2].set(title="abs(m - f)")
-                axs[i * num_cols + 3].set(title="phi")
+                axs[i * num_cols + 0].set(title=r"$\mathit{m}$")
+                axs[i * num_cols + 1].set(title=r"$\mathit{f}$")
+                axs[i * num_cols + 2].set(title=r"$\mathit{m \circ \phi}$")
+                axs[i * num_cols + 3].set(title=r"$\mathit{\left| \; m - f \; \right|}$")
+                axs[i * num_cols + 4].set(title=r"$\mathit{\phi}$")
 
             axs[i * num_cols + 0].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[], aspect="equal")
             axs[i * num_cols + 1].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[], aspect="equal")
