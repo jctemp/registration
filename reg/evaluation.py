@@ -93,48 +93,46 @@ def main():
     trainer.test(model, data_loader, verbose=True)
     predictions = trainer.predict(model, data_loader)
 
-    np.random.seed(42)
-    nums = np.random.randint(0, len(data_loader), 5)
-    subset_original = []
-    subset_predict = []
+    nums = [10, 20, 30, 40, 50]
+    subset_moving = []
+    subset_warped = []
 
     for i, batch in enumerate(data_loader):
         if i in nums:
-            subset_original.append(batch)
-            subset_predict.append(predictions[i])
+            subset_moving.append(batch)
+            subset_warped.append(predictions[i])
 
-    for original, warped, dvf in zip(subset_original, subset_predict):
+    for moving, (warped, dvf) in zip(subset_moving, subset_warped):
         dim = (3, 1, 2, 0)
 
         # re-order channels of outputs (t, w, h, c)
-        original = original[0].detach().cpu().permute(dim)
+        moving = moving[0].detach().cpu().permute(dim)
         warped = warped[0].detach().cpu().permute(dim)
         dvf = dvf[0].detach().cpu().permute(dim)
 
         # TODO: target types???
-        target = original[-1]
+        fixed = moving[-1]
 
         # create diff map using comparison to neighbour
-        abs_diff = torch.stack([torch.abs(w - target) for w in warped], dim=0)
-        abs_diff_original = torch.stack([torch.abs(o - target) for o in original], dim=0)
+        abs_diff = torch.stack([torch.abs(w - fixed) for w in warped], dim=0)
 
         # create dvf colour map
         dvf = torch.tanh(dvf[:, :, :])
         dvf_x = (dvf[:, :, :, 0] + 1) / 2
         dvf_y = (dvf[:, :, :, 1] + 1) / 2
-        dvf_z = dvf_x * 0  # (dvf[:, :, :, 0] * dvf[:, :, :, 1] + 1) / 2
+        dvf_z = dvf_x * 0
         dvf = torch.stack([dvf_x, dvf_y, dvf_z], dim=-1)
 
         # plots
-        num_cols = 4
-        num_rows = 2  # show two worst image
+        num_cols = 5
+        num_rows = 1  # show two worst image
 
         metric = torch.nn.MSELoss()
         loss = torch.stack(
-            [metric(w.permute(2, 0, 1).unsqueeze(0), target.permute(2, 0, 1).unsqueeze(0)) for w in warped], dim=0)
+            [metric(w.permute(2, 0, 1).unsqueeze(0), fixed.permute(2, 0, 1).unsqueeze(0)) for w in warped], dim=0)
 
         top_k_values, top_k_indices = torch.topk(loss, num_rows)  # select images with the highest loss
-        k_original = torch.index_select(original, 0, top_k_indices)
+        k_moving = torch.index_select(moving, 0, top_k_indices)
         k_warped = torch.index_select(warped, 0, top_k_indices)
         k_dvf = torch.index_select(dvf, 0, top_k_indices)
         k_abs_diff = torch.index_select(abs_diff, 0, top_k_indices)
@@ -143,7 +141,7 @@ def main():
                                 dpi=300)
         axs = axs.flatten()
 
-        for i, (o, w, d, a) in enumerate(zip(k_original, k_warped, k_dvf, k_abs_diff)):
+        for i, (m, w, d, a) in enumerate(zip(k_moving, k_warped, k_dvf, k_abs_diff)):
             if show_title and i == 0:
                 axs[i * num_cols + 0].set(title="m")
                 axs[i * num_cols + 0].set(title="f")
@@ -157,10 +155,10 @@ def main():
             axs[i * num_cols + 3].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[], aspect="equal")
             axs[i * num_cols + 4].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[], aspect="equal")
 
-            axs[i * num_cols + 0].imshow(target, cmap="gray")
-            axs[i * num_cols + 1].imshow(w, cmap="gray")
-            axs[i * num_cols + 2].imshow(a, cmap="gray")
-            axs[i * num_cols + 3].imshow(d, cmap="gray")
+            axs[i * num_cols + 0].imshow(m, cmap="gray")
+            axs[i * num_cols + 1].imshow(fixed, cmap="gray")
+            axs[i * num_cols + 2].imshow(w, cmap="gray")
+            axs[i * num_cols + 3].imshow(a, cmap="gray")
             axs[i * num_cols + 4].imshow(d, cmap="gray")
 
         fig.subplots_adjust(wspace=0, hspace=0)
