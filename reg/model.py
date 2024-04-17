@@ -22,6 +22,9 @@ class TransMorphModule(pl.LightningModule):
         self.target_type = target_type
 
     def _predict(self, batch, fixed):
+        assert batch.device == fixed.device
+        device = fixed.device
+
         assert (len(batch.shape) == len(fixed.shape) and batch.shape[:-1] == fixed.shape[:-1]
                 or batch.shape[:-1] == fixed.shape)
         if len(batch.shape) == len(fixed.shape) + 1:
@@ -42,7 +45,7 @@ class TransMorphModule(pl.LightningModule):
                 batch_slice = batch[..., n:series_len]
                 pad_depth = n + max_len - series_len - 1
                 batch_slice_max -= pad_depth
-                zeros = torch.zeros((*(batch.shape[:-1]), pad_depth))
+                zeros = torch.zeros((*(batch.shape[:-1]), pad_depth), device=device)
                 batch_slice = torch.cat([batch_slice, zeros], dim=-1)
             batch_slice = torch.cat([fixed, batch_slice], dim=-1)
 
