@@ -63,7 +63,7 @@ class LungDataset(Dataset):
         return len(self.image_paths)
 
     def __getitem__(self, idx):
-        data = reader(self.image_paths[idx], self.series_len)
+        data = reader(self.image_paths[idx], end=self.series_len)
 
         if self.mod == "norm":
             ndat = normalize(data)
