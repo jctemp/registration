@@ -172,9 +172,7 @@ def reg_test(args):
     num_workers = 1 if args.num_workers is None else args.num_workers
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
-    datamodule = LungDataModule(
-        batch_size=batch_size, num_workers=num_workers, pin_memory=True
-    )
+    datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True, series_len=200)
     trainer.test(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 

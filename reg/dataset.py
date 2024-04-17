@@ -20,11 +20,14 @@ def standardize(image):
     return normalized
 
 
-def reader(path, end=None):
-    if end is None:
-        dcm = spio.loadmat(path)["dcm"]
-    else:
-        dcm = spio.loadmat(path)["dcm"][:end]
+def reader(path, start=None, end=None):
+    dcm = spio.loadmat(path)["dcm"]
+    if start and end:
+        dcm = dcm[start:end]
+    elif start:
+        dcm = dcm[start:]
+    elif end:
+        dcm = dcm[:end]
     data = np.transpose(dcm, (1, 2, 0))[None, :, :, :]  # C, W, H, t
     return data
 
@@ -107,7 +110,7 @@ class LungDataModule(pl.LightningDataModule):
             val=True,
             split=self.split,
             seed=self.seed,
-            series_len=self.series_len,
+            series_len=None,
             mod=self.mod)
 
         self.test_set = LungDataset(
@@ -115,7 +118,7 @@ class LungDataModule(pl.LightningDataModule):
             val=False,
             split=self.split,
             seed=self.seed,
-            series_len=self.series_len,
+            series_len=None,
             mod=self.mod)
 
     def train_dataloader(self):
