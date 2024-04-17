@@ -44,7 +44,7 @@ class TransMorphModule(pl.LightningModule):
                 batch_slice_max -= pad_depth
                 zeros = torch.zeros((*(batch.shape[:-1]), pad_depth))
                 batch_slice = torch.cat([batch_slice, zeros], dim=-1)
-            batch_slice = torch.cat([fixed, batch_slice])
+            batch_slice = torch.cat([fixed, batch_slice], dim=-1)
 
             is_diff = isinstance(self.net, TransMorphBspline)
             if is_diff:
