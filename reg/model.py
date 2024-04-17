@@ -40,16 +40,9 @@ class TransMorphModule(pl.LightningModule):
         slice_max: int = self.net.transformer.img_size[-1] - 1
         offset_max: int = series_len - slice_max
 
-        start_idx = np.random.randint(0, offset_max) + offset_max // 2 if np.random.rand() > 0.9 else 0
-        if start_idx + slice_max < series_len:
-            batch_slice = batch[..., start_idx:start_idx + slice_max]
-            batch_slice = torch.cat([fixed, batch_slice], dim=-1)
-        else:
-            batch_slice = batch[..., start_idx:series_len]
-            pad_depth = start_idx + slice_max - series_len
-            slice_max -= pad_depth
-            zeros = torch.zeros((*(batch.shape[:-1]), pad_depth), device=device)
-            batch_slice = torch.cat([fixed, batch_slice, zeros], dim=-1)
+        start_idx = np.random.randint(0, offset_max)
+        batch_slice = batch[..., start_idx:start_idx + slice_max]
+        batch_slice = torch.cat([fixed, batch_slice], dim=-1)
 
         if is_diff:
             warped, flows, disp = self.net(batch_slice)
