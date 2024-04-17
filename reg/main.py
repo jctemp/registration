@@ -117,7 +117,7 @@ def reg_train(args):
     trainer = pl.Trainer(
         max_epochs=max_epoch,
         accelerator=accelerator,
-        devices=devices,
+        devices=None if devices == 0 else devices,
         log_every_n_steps=1,
         deterministic=False,
         benchmark=False,
