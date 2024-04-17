@@ -85,7 +85,7 @@ def reg_train(args):
 
     # Trainer
     devices = int(args.devices) if args.devices is not None else 0
-    accelerator = "auto" if devices == 0 else "gpu"
+    accelerator = "cpu" if devices == 0 else "gpu"
     batch_size = 1
     trainer_logger = None
 
@@ -117,7 +117,6 @@ def reg_train(args):
     trainer = pl.Trainer(
         max_epochs=max_epoch,
         accelerator=accelerator,
-        devices=None if devices == 0 else devices,
         log_every_n_steps=1,
         deterministic=False,
         benchmark=False,
