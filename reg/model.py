@@ -1,3 +1,5 @@
+import math
+
 from models.transmorph_bspline import TransMorphBspline
 from models.transmorph_bayes import TransMorphBayes
 from models.transmorph import TransMorph
@@ -35,17 +37,17 @@ class TransMorphModule(pl.LightningModule):
 
         # Determine the series length and transformer max input size regarding temporal dimension (depth)
         series_len: int = batch.shape[-1]
-        batch_slice_max: int = self.net.transformer.img_size[-1] - 1
-        max_offset: int = series_len - batch_slice_max // 2
+        slice_max: int = self.net.transformer.img_size[-1] - 1
+        offset_max: int = series_len - math.ceil(slice_max / 10)
 
-        start_idx = np.random.randint(0, max_offset)
-        if start_idx + batch_slice_max < series_len:
-            batch_slice = batch[..., start_idx:start_idx + batch_slice_max]
+        start_idx = np.random.randint(0, offset_max)
+        if start_idx + slice_max < series_len:
+            batch_slice = batch[..., start_idx:start_idx + slice_max]
             batch_slice = torch.cat([fixed, batch_slice], dim=-1)
         else:
             batch_slice = batch[..., start_idx:series_len]
-            pad_depth = start_idx + batch_slice_max - series_len
-            batch_slice_max -= pad_depth
+            pad_depth = start_idx + slice_max - series_len
+            slice_max -= pad_depth
             zeros = torch.zeros((*(batch.shape[:-1]), pad_depth), device=device)
             batch_slice = torch.cat([fixed, batch_slice, zeros], dim=-1)
 
@@ -54,7 +56,9 @@ class TransMorphModule(pl.LightningModule):
         else:
             (warped, flows), disp = self.net(batch_slice), None
 
-        return warped, flows, disp
+        if disp:
+            return warped[..., 1:slice_max + 1], flows[..., 1:slice_max + 1], disp[..., 1:slice_max + 1]
+        return warped[..., 1:slice_max + 1], flows[..., 1:slice_max + 1], disp
 
     def _predict_series(self, batch, fixed):
         assert batch.device == fixed.device
@@ -119,7 +123,7 @@ class TransMorphModule(pl.LightningModule):
         # targets = torch.repeat_interleave(fixed[:, :, :, :, None], batch.shape[-1], dim=-1)
 
         loss = 0
-        series_len = batch.shape[-1]
+        series_len = warped.shape[-1]
         for loss_fn, w in self.criteria_image:
             loss += torch.mean(
                 torch.stack([loss_fn(warped[..., i], fixed) for i in range(series_len)])) * w
