@@ -38,9 +38,9 @@ class TransMorphModule(pl.LightningModule):
         # Determine the series length and transformer max input size regarding temporal dimension (depth)
         series_len: int = batch.shape[-1]
         slice_max: int = self.net.transformer.img_size[-1] - 1
-        offset_max: int = series_len - math.ceil(slice_max / 10)
+        offset_max: int = series_len - slice_max
 
-        start_idx = np.random.randint(0, offset_max)
+        start_idx = np.random.randint(0, offset_max) + offset_max // 2 if np.random.rand() > 0.9 else 0
         if start_idx + slice_max < series_len:
             batch_slice = batch[..., start_idx:start_idx + slice_max]
             batch_slice = torch.cat([fixed, batch_slice], dim=-1)
