@@ -22,7 +22,8 @@ class TransMorphModule(pl.LightningModule):
         self.target_type = target_type
 
     def _predict(self, batch, fixed):
-        assert batch.shape[:-1] == fixed.shape[:-1]
+        assert (len(batch.shape) == len(fixed.shape) and batch.shape[:-1] == fixed.shape[:-1]
+                or batch.shape[:-1] == fixed.shape)
         if len(batch.shape) == len(fixed.shape) + 1:
             fixed = fixed.unsqueeze(-1)
 
