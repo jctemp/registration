@@ -84,8 +84,8 @@ def reg_train(args):
     )
 
     # Trainer
-    accelerator = "auto" if args.devices is None else "gpu"
-    devices = "auto" if args.devices is None else args.devices
+    devices = int(args.devices) if args.devices is not None else 0
+    accelerator = "auto" if devices == 0 else "gpu"
     batch_size = 1
     trainer_logger = None
 

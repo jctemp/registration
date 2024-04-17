@@ -43,7 +43,7 @@ class TransMorphModule(pl.LightningModule):
                 batch_slice = batch[..., n:n + max_len]
             else:
                 batch_slice = batch[..., n:series_len]
-                pad_depth = n + max_len - series_len - 1
+                pad_depth = n + max_len - series_len
                 batch_slice_max -= pad_depth
                 zeros = torch.zeros((*(batch.shape[:-1]), pad_depth), device=device)
                 batch_slice = torch.cat([batch_slice, zeros], dim=-1)
@@ -52,16 +52,16 @@ class TransMorphModule(pl.LightningModule):
             is_diff = isinstance(self.net, TransMorphBspline)
             if is_diff:
                 warped, flows, disp = self.net(batch_slice)
-                disp_batch.append(disp[1:batch_slice_max])
+                disp_batch.append(disp[..., 1:batch_slice_max])
             else:
                 warped, flows = self.net(batch_slice)
 
-            outputs_batch.append(warped[1:batch_slice_max])
-            flows_batch.append(flows[1:batch_slice_max])
+            outputs_batch.append(warped[..., 1:batch_slice_max + 1])
+            flows_batch.append(flows[..., 1:batch_slice_max + 1])
 
-        warped = torch.stack(outputs_batch)
-        flows = torch.stack(flows_batch)
-        disp = torch.stack(disp_batch) if disp_batch != [] else torch.tensor([0])
+        warped = torch.cat(outputs_batch, dim=-1)
+        flows = torch.cat(flows_batch, dim=-1)
+        disp = torch.cat(disp_batch, dim=-1) if disp_batch != [] else torch.tensor([0])
 
         return warped, flows, disp
 
