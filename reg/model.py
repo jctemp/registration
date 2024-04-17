@@ -22,9 +22,9 @@ class TransMorphModule(pl.LightningModule):
         self.target_type = target_type
 
     def _predict(self, batch, fixed):
-        assert len(batch.shape) == len(fixed.shape)
         assert batch.shape[:-1] == fixed.shape[:-1]
-        assert fixed.shape[-1] == 1
+        if len(batch.shape) == len(fixed.shape) + 1:
+            fixed = fixed.unsqueeze(-1)
 
         series_len = batch.shape[-1]
         max_len = self.net.transformer.img_size[-1] - 1
