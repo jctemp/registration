@@ -108,7 +108,7 @@ def reg_train(args):
     flow_loss_str = "&".join([f"{loss}={weight}" for loss, weight in flow_losses])
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
-        dirpath=f"model_weights/{model_name}-{image_loss_str}-{flow_loss_str}-"
+        dirpath=f"model_weights_v2/{model_name}-{image_loss_str}-{flow_loss_str}-"
                 f"{optimizer_name}-{str(lr)}-{target_type}-{max_epoch}-{series_len}-{data_mod}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=3,
