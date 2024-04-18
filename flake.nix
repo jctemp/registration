@@ -46,7 +46,8 @@
           pkgs.cachix
           pkgs.alejandra
           pkgs.nodejs
-          pkgs.jetbrains.pycharm-community
+          # pkgs.jetbrains.pycharm-community
+          pkgs.jetbrains.pycharm-professional
 
           cudaPackages.cudatoolkit
           cudaPackages.cudnn

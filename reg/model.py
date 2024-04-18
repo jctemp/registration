@@ -25,8 +25,6 @@ class TransMorphModule(pl.LightningModule):
 
     def _predict_segment(self, batch, fixed):
         assert batch.device == fixed.device
-        device = fixed.device
-
         assert (len(batch.shape) == len(fixed.shape) and batch.shape[:-1] == fixed.shape[:-1]
                 or batch.shape[:-1] == fixed.shape)
         if len(batch.shape) == len(fixed.shape) + 1:
