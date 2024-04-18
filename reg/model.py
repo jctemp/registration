@@ -152,7 +152,7 @@ class TransMorphModule(pl.LightningModule):
 
     def predict_step(self, batch, _):
         fixed = self._fixed_image(batch)
-        warped, flows, disp = self._predict(batch, fixed)
+        warped, flows, disp = self._predict_series(batch, fixed)
         return warped, flows, disp
 
     def configure_optimizers(self):
