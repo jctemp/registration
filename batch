@@ -46,7 +46,7 @@ cd /hpc/scratch/project/jvc-lab/stud/registration/reg
 """
 
 bash_script += (f"python main.py --log --devices {args.gpu} --num_workers {args.cpu} --data_mod {args.data_mod} "
-                f"train {args.model_name} {args.image_loss} {args.flow_loss} "
+                f"train {args.model_name} '{args.image_loss}' '{args.flow_loss}' "
                 f"--optimizer {args.optimizer} "
                 f"--lr {args.lr} "
                 f"--target_type {args.target_type} "
