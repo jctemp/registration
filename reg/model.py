@@ -129,7 +129,11 @@ class TransMorphModule(pl.LightningModule):
         if self.target_type == "last":
             return batch[..., -1]
         elif self.target_type == "mean":
-            raise NotImplementedError("mean loss not implemented")
+            means = torch.mean(batch, (-2, -3))[0, 0][20:]
+            mean_of_means = torch.mean(means)
+            diff = torch.abs(means - mean_of_means)
+            _, i = torch.topk(diff, 1, largest=False)
+            return batch[..., i]
         else:
             raise NotImplementedError("group loss not implemented")
 
