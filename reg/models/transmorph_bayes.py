@@ -1,5 +1,5 @@
 from .modules.swin_transformer_mc import SwinTransformerMC
-from .modules.spatial_transformer import SpatialTransformer
+from .modules.spatial_transformer import SpatialTransformer, SpatialTransformerSeries
 from .modules.conv_layers import Conv3dReLU, DecoderBlock, RegistrationHead, SigmaHead
 
 import torch.nn as nn
@@ -82,6 +82,12 @@ class TransMorphBayes(nn.Module):
             kernel_size=3,
         )
 
+        self.reg_head2d = RegistrationHead(
+            in_channels=config.reg_head_chan,
+            out_channels=2,
+            kernel_size=3,
+        )
+
         self.reg_head3d = RegistrationHead(
             in_channels=config.reg_head_chan,
             out_channels=3,
@@ -89,6 +95,7 @@ class TransMorphBayes(nn.Module):
         )
 
         self.spatial_trans = SpatialTransformer(config.img_size)
+        self.spatial_trans_series = SpatialTransformerSeries(config.img_size)
         self.avg_pool = nn.AvgPool3d(3, stride=2, padding=1)
 
     def forward(self, x):
@@ -119,7 +126,7 @@ class TransMorphBayes(nn.Module):
         x = self.up3(x, f4)
         x = self.up4(x, f5)
 
-        flow = self.reg_head3d(x)
-        out = self.spatial_trans(source, flow)
+        flow = self.reg_head2d(x)
+        out = self.spatial_trans_series(source, flow)
 
         return out, flow
