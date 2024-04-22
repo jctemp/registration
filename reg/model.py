@@ -133,7 +133,7 @@ class TransMorphModule(pl.LightningModule):
             mean_of_means = torch.mean(means)
             diff = torch.abs(means - mean_of_means)
             _, i = torch.topk(diff, 1, largest=False)
-            return batch[..., i]
+            return batch[..., i].squeeze(-1)
         else:
             raise NotImplementedError("group loss not implemented")
 
