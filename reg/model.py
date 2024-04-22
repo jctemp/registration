@@ -23,7 +23,7 @@ class TransMorphModule(pl.LightningModule):
         self.lr = lr
         self.target_type = target_type
 
-    def _predict_segment(self, batch, fixed):
+    def predict_segment(self, batch, fixed):
         assert batch.device == fixed.device
         assert (len(batch.shape) == len(fixed.shape) and batch.shape[:-1] == fixed.shape[:-1]
                 or batch.shape[:-1] == fixed.shape)
@@ -51,7 +51,7 @@ class TransMorphModule(pl.LightningModule):
             return warped[..., 1:slice_max + 1], flows[..., 1:slice_max + 1], disp[..., 1:slice_max + 1]
         return warped[..., 1:slice_max + 1], flows[..., 1:slice_max + 1], disp
 
-    def _predict_series(self, batch, fixed):
+    def predict_series(self, batch, fixed):
         assert batch.device == fixed.device
         device = fixed.device
 
@@ -64,41 +64,68 @@ class TransMorphModule(pl.LightningModule):
         is_diff = isinstance(self.net, TransMorphBspline)
 
         # Determine the series length and transformer max input size regarding temporal dimension (depth)
-        series_len = batch.shape[-1]
-        max_len = self.net.transformer.img_size[-1] - 1
+        max_length = batch.shape[-1]
+        max_segment_length = self.net.transformer.img_size[-1] - 1
 
         # Pre-allocate output vectors to avoid copies
-        warped_out = torch.zeros((*(batch.shape[:-1]), series_len), device=device)
-        flows_out = torch.zeros((batch.shape[0], 2, *(batch.shape[2:-1]), series_len), device=device)
+        warped_out = torch.zeros((*(batch.shape[:-1]), max_length), device=device)
+        flows_out = torch.zeros((batch.shape[0], 2, *(batch.shape[2:-1]), max_length), device=device)
         disp_out = torch.zeros_like(warped_out) if is_diff else torch.tensor([0], device=device) if is_diff else None
 
         # Process series
-        for start_idx in range(0, series_len, max_len):
-            batch_slice_max = max_len
-            end_idx = start_idx + batch_slice_max
+        for start_idx in range(0, max_length, max_segment_length):
+            end_idx = start_idx + max_segment_length
 
-            if start_idx + max_len < series_len:
-                batch_slice = batch[..., start_idx:start_idx + max_len]
+            batch_slice_start = 1  # start at one because fixed is always at position 0
+            batch_slice_end = max_segment_length + 1  # need to offset by one due to fixed
+
+            if end_idx < max_length:
+                batch_slice = batch[..., start_idx:end_idx]
                 batch_slice = torch.cat([fixed, batch_slice], dim=-1)
+
+            # TransMorph depth is not larger than input series, so we can place it inside
+            #
+            # n = 16, msl (max_segment_length) = 4
+            # [n0, n1, n2, ..., n-4, n-3, n-2, n-1] n n+1
+            # --- start_idx ---------------^ -- msl ---^
+            #
+            # Compute new starting point to get valid batch within series
+            # [n0, n1, n2, ..., n-4, n-3, n-2, n-1] n
+            #                    ^-------------------
+            #
+            # Shift batch_slice_start because images between start_idx and new_start are already registered
+            # Note: new_start is always smaller than start_idx
+            # [n0, n1, n2, ..., n-4, n-3, n-2, n-1] n
+            # --- start_idx ---------------^
+            # --- new_start -----^=== k ===^
+            #
+            # The value k is the difference (e.g. 2) cropping the start of a batch slice away.
+            #
+            elif max_length - max_segment_length > 0:
+                new_start = max_length - max_segment_length
+                batch_slice = batch[..., new_start:max_length]
+                batch_slice = torch.cat([fixed, batch_slice], dim=-1)
+                batch_slice_start += start_idx - new_start
+
             else:
-                batch_slice = batch[..., start_idx:series_len]
-                pad_depth = start_idx + max_len - series_len
-                batch_slice_max -= pad_depth
+                batch_slice = batch[..., start_idx:max_length]
+                pad_depth = end_idx - max_length
+                batch_slice_end -= pad_depth
                 zeros = torch.zeros((*(batch.shape[:-1]), pad_depth), device=device)
                 batch_slice = torch.cat([fixed, batch_slice, zeros], dim=-1)
 
             if is_diff:
                 warped, flows, disp = self.net(batch_slice)
-                disp_out[..., start_idx:end_idx] = disp[..., 1:batch_slice_max + 1]
+                disp_out[..., start_idx:end_idx] = disp[..., batch_slice_start:batch_slice_end]
             else:
                 warped, flows = self.net(batch_slice)
 
-            warped_out[..., start_idx:end_idx] = warped[..., 1:batch_slice_max + 1]
-            flows_out[..., start_idx:end_idx] = flows[..., 1:batch_slice_max + 1]
+            warped_out[..., start_idx:end_idx] = warped[..., batch_slice_start:batch_slice_end]
+            flows_out[..., start_idx:end_idx] = flows[..., batch_slice_start:batch_slice_end]
 
         return warped_out, flows_out, disp_out
 
-    def _fixed_image(self, batch):
+    def fixed_image(self, batch):
         if self.target_type == "last":
             return batch[..., -1]
         elif self.target_type == "mean":
@@ -107,8 +134,8 @@ class TransMorphModule(pl.LightningModule):
             raise NotImplementedError("group loss not implemented")
 
     def _get_preds_loss(self, batch, training=True):
-        fixed = self._fixed_image(batch)
-        warped, flows, disp = self._predict_segment(batch, fixed) if training else self._predict_series(batch, fixed)
+        fixed = self.fixed_image(batch)
+        warped, flows, disp = self.predict_segment(batch, fixed) if training else self.predict_series(batch, fixed)
 
         # identity loss?
         # targets = torch.repeat_interleave(fixed[:, :, :, :, None], batch.shape[-1], dim=-1)
@@ -134,11 +161,11 @@ class TransMorphModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, _):
-        loss, _, _, _, _ = self._get_preds_loss(batch)
+        loss, _, _, _, _ = self._get_preds_loss(batch, training=False)
         self.log("val_loss", loss, on_step=True, on_epoch=True, logger=True, sync_dist=True)
 
     def test_step(self, batch, _):
-        loss, fixed, _, flows, _ = self._get_preds_loss(batch)
+        loss, fixed, _, flows, _ = self._get_preds_loss(batch, training=False)
         self.log("test_loss", loss, on_step=False, on_epoch=True, logger=True, sync_dist=True)
 
         tar = fixed.detach().cpu().numpy()[0, :, :, :]
@@ -151,8 +178,8 @@ class TransMorphModule(pl.LightningModule):
         return loss, {"mean_neg_det": neg_det}
 
     def predict_step(self, batch, _):
-        fixed = self._fixed_image(batch)
-        warped, flows, disp = self._predict_series(batch, fixed)
+        fixed = self.fixed_image(batch)
+        warped, flows, disp = self.predict_series(batch, fixed)
         return warped, flows, disp
 
     def configure_optimizers(self):
