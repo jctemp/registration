@@ -5,13 +5,13 @@ from torch.nn import MSELoss as mse
 from monai.losses import LocalNormalizedCrossCorrelationLoss as lncc
 from monai.losses import GlobalMutualInformationLoss as gmi
 from monai.losses import BendingEnergyLoss as bel
-from monai.losses import SSIMLoss as ssmi
+from monai.losses import SSIMLoss as ssim
 
 CONFIGS_IMAGE_LOSS = {
     "mse": mse(),
     "ncc": lncc(kernel_size=7, spatial_dims=2),
     "gmi": gmi(),
-    "ssmi": ssmi(spatial_dims=2),
+    "ssim": ssim(spatial_dims=2),
 }
 
 CONFIGS_FLOW_LOSS = {
