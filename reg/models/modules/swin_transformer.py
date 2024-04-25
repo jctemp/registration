@@ -7,7 +7,7 @@ from timm.models.layers import DropPath, trunc_normal_, to_3tuple
 
 
 class PatchMerging(nn.Module):
-    r"""Patch Merging Layer.
+    """Patch Merging Layer.
     Args:
         dim (int): Number of input channels.
         norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
@@ -21,7 +21,11 @@ class PatchMerging(nn.Module):
 
     def forward(self, x, H, W, T):
         """
-        x: B, H*W*T, C
+        Args:
+            x: Tensor of shape (B, H * W * T, C)
+            H (int): Height of image
+            W (int): Width of image
+            T (int): Length of image
         """
         B, L, C = x.shape
         assert L == H * W * T, "input feature has wrong size"
@@ -54,15 +58,18 @@ class PatchMerging(nn.Module):
 
 
 class PatchEmbed(nn.Module):
-    """Image to Patch Embedding
-    Args:
-        patch_size (tuple[int]): Patch token size. Default: 4.
-        in_chans (int): Number of input image channels. Default: 3.
-        embed_dim (int): Number of linear projection output channels. Default: 96.
-        norm_layer (nn.Module, optional): Normalization layer. Default: None
+    """
+    Image to Patch Embedding
     """
 
     def __init__(self, patch_size=4, in_chans=3, embed_dim=96, norm_layer=None):
+        """
+        Args:
+            patch_size (tuple[int]): Patch token size. Default: 4.
+            in_chans (int): Number of input image channels. Default: 3.
+            embed_dim (int): Number of linear projection output channels. Default: 96.
+            norm_layer (nn.Module, optional): Normalization layer. Default: None
+        """
         super().__init__()
         patch_size = to_3tuple(patch_size)
         self.patch_size = patch_size
@@ -79,7 +86,9 @@ class PatchEmbed(nn.Module):
             self.norm = None
 
     def forward(self, x):
-        """Forward function."""
+        """
+        Forward function.
+        """
         # padding
         _, _, H, W, T = x.size()
         if T % self.patch_size[2] != 0:
@@ -213,6 +222,14 @@ class Mlp(nn.Module):
         act_layer=nn.GELU,
         drop=0.0,
     ):
+        """
+        Args:
+            in_features (int): Number of input features.
+            hidden_features (int): Number of hidden features.
+            out_features (int): Number of output features.
+            act_layer (nn.Module): Activation layer.
+            drop (float): Dropout rate.
+        """
         super().__init__()
         out_features = out_features or in_features
         hidden_features = hidden_features or in_features
@@ -222,6 +239,9 @@ class Mlp(nn.Module):
         self.drop = nn.Dropout(drop)
 
     def forward(self, x):
+        """
+        Forward function.
+        """
         x = self.fc1(x)
         x = self.act(x)
         x = self.drop(x)
@@ -231,16 +251,9 @@ class Mlp(nn.Module):
 
 
 class WindowAttention(nn.Module):
-    """Window based multi-head self attention (W-MSA) module with relative position bias.
+    """
+    Window based multi-head self attention (W-MSA) module with relative position bias.
     It supports both of shifted and non-shifted window.
-    Args:
-        dim (int): Number of input channels.
-        window_size (tuple[int]): The height and width of the window.
-        num_heads (int): Number of attention heads.
-        qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
-        attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
-        proj_drop (float, optional): Dropout ratio of output. Default: 0.0
     """
 
     def __init__(
@@ -254,6 +267,16 @@ class WindowAttention(nn.Module):
         attn_drop=0.0,
         proj_drop=0.0,
     ):
+        """
+        Args:
+            dim (int): Number of input channels.
+            window_size (tuple[int]): The height and width of the window.
+            num_heads (int): Number of attention heads.
+            qkv_bias (bool, optional):  If True, add a learnable bias to query, key, value. Default: True
+            qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set
+            attn_drop (float, optional): Dropout ratio of attention weight. Default: 0.0
+            proj_drop (float, optional): Dropout ratio of output. Default: 0.0
+        """
         super().__init__()
         self.dim = dim
         self.window_size = window_size  # Wh, Ww
@@ -305,9 +328,10 @@ class WindowAttention(nn.Module):
         self.softmax = nn.Softmax(dim=-1)
 
     def forward(self, x, mask=None):
-        """Forward function.
+        """
+        Forward function.
         Args:
-            x: input features with shape of (num_windows*B, N, C)
+            x: input features with shape of (num_windows * B, N, C)
             mask: (0/-inf) mask with shape of (num_windows, Wh*Ww, Wh*Ww, Wt*Ww) or None
         """
         B_, N, C = x.shape  # (num_windows*B, Wh*Ww*Wt, C)
@@ -371,22 +395,6 @@ class WindowAttention(nn.Module):
 
 
 class SwinTransformerBlock(nn.Module):
-    r"""Swin Transformer Block.
-    Args:
-        dim (int): Number of input channels.
-        num_heads (int): Number of attention heads.
-        window_size (tuple[int]): Window size.
-        shift_size (tuple[int]): Shift size for SW-MSA.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float, optional): Stochastic depth rate. Default: 0.0
-        act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
-        norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
-    """
-
     def __init__(
         self,
         dim,
@@ -403,6 +411,22 @@ class SwinTransformerBlock(nn.Module):
         act_layer=nn.GELU,
         norm_layer=nn.LayerNorm,
     ):
+        """
+        Args:
+            dim (int): Number of input channels.
+            num_heads (int): Number of attention heads.
+            window_size (tuple[int]): Window size.
+            shift_size (tuple[int]): Shift size for SW-MSA.
+            mlp_ratio (float): Ratio of mlp hidden dim to embedding dim.
+            qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
+            qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
+            drop (float, optional): Dropout rate. Default: 0.0
+            attn_drop (float, optional): Attention dropout rate. Default: 0.0
+            drop_path (float, optional): Stochastic depth rate. Default: 0.0
+            act_layer (nn.Module, optional): Activation layer. Default: nn.GELU
+            norm_layer (nn.Module, optional): Normalization layer.  Default: nn.LayerNorm
+        """
+
         super().__init__()
         self.dim = dim
         self.num_heads = num_heads
@@ -440,6 +464,11 @@ class SwinTransformerBlock(nn.Module):
         self.T = None
 
     def forward(self, x, mask_matrix):
+        """
+        Args:
+            x: Input tensor.
+            mask_matrix: Attention mask.
+        """
         H, W, T = self.H, self.W, self.T
         B, L, C = x.shape
         assert L == H * W * T, "input feature has wrong size"
@@ -512,21 +541,8 @@ class SwinTransformerBlock(nn.Module):
 
 
 class BasicLayer(nn.Module):
-    """A basic Swin Transformer layer for one stage.
-    Args:
-        dim (int): Number of feature channels
-        depth (int): Depths of this stage.
-        num_heads (int): Number of attention head.
-        window_size (tuple[int]): Local window size.
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim. Default: 4.
-        qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
-        drop (float, optional): Dropout rate. Default: 0.0
-        attn_drop (float, optional): Attention dropout rate. Default: 0.0
-        drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
-        norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
-        downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+    """
+    A basic Swin Transformer layer for one stage.
     """
 
     def __init__(
@@ -547,6 +563,22 @@ class BasicLayer(nn.Module):
         use_checkpoint=False,
         pat_merg_rf=2,
     ):
+        """
+        Args:
+            dim (int): Number of feature channels
+            depth (int): Depths of this stage.
+            num_heads (int): Number of attention head.
+            window_size (tuple[int]): Local window size.
+            mlp_ratio (float): Ratio of mlp hidden dim to embedding dim. Default: 4.
+            qkv_bias (bool, optional): If True, add a learnable bias to query, key, value. Default: True
+            qk_scale (float | None, optional): Override default qk scale of head_dim ** -0.5 if set.
+            drop (float, optional): Dropout rate. Default: 0.0
+            attn_drop (float, optional): Attention dropout rate. Default: 0.0
+            drop_path (float | tuple[float], optional): Stochastic depth rate. Default: 0.0
+            norm_layer (nn.Module, optional): Normalization layer. Default: nn.LayerNorm
+            downsample (nn.Module | None, optional): Downsample layer at the end of the layer. Default: None
+            use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False.
+        """
         super().__init__()
         self.window_size = window_size
         self.shift_size = (
@@ -557,7 +589,6 @@ class BasicLayer(nn.Module):
         self.depth = depth
         self.use_checkpoint = use_checkpoint
         self.pat_merg_rf = pat_merg_rf
-        # build blocks
         self.blocks = nn.ModuleList(
             [
                 SwinTransformerBlock(
@@ -595,7 +626,7 @@ class BasicLayer(nn.Module):
             self.downsample = None
 
     def forward(self, x, H, W, T):
-        """Forward function.
+        """
         Args:
             x: Input feature, tensor size (B, H*W, C).
             H, W: Spatial resolution of the input feature.
@@ -654,27 +685,10 @@ class BasicLayer(nn.Module):
 
 
 class SwinTransformer(nn.Module):
-    r"""Swin Transformer
+    """
+    Swin Transformer
         A PyTorch impl of : `Swin Transformer: Hierarchical Vision Transformer using Shifted Windows`  -
           https://arxiv.org/pdf/2103.14030
-    Args:
-        img_size (tuple(int)): Input image size. Default 224
-        patch_size (int | tuple(int)): Patch size. Default: 4
-        in_chans (int): Number of input image channels. Default: 3
-        embed_dim (int): Patch embedding dimension. Default: 96
-        depths (tuple(int)): Depth of each Swin Transformer layer.
-        num_heads (tuple(int)): Number of attention heads in different layers.
-        window_size (tuple): Window size. Default: 7
-        mlp_ratio (float): Ratio of mlp hidden dim to embedding dim. Default: 4
-        qkv_bias (bool): If True, add a learnable bias to query, key, value. Default: True
-        qk_scale (float): Override default qk scale of head_dim ** -0.5 if set. Default: None
-        drop_rate (float): Dropout rate. Default: 0
-        attn_drop_rate (float): Attention dropout rate. Default: 0
-        drop_path_rate (float): Stochastic depth rate. Default: 0.1
-        norm_layer (nn.Module): Normalization layer. Default: nn.LayerNorm.
-        ape (bool): If True, add absolute position embedding to the patch embedding. Default: False
-        patch_norm (bool): If True, add normalization after patch embedding. Default: True
-        use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
     """
 
     def __init__(
@@ -702,6 +716,27 @@ class SwinTransformer(nn.Module):
         use_checkpoint=False,
         pat_merg_rf=2,
     ):
+        """
+        Args:
+            img_size (tuple(int)): Input image size. Default 224
+            patch_size (int | tuple(int)): Patch size. Default: 4
+            in_chans (int): Number of input image channels. Default: 3
+            embed_dim (int): Patch embedding dimension. Default: 96
+            depths (tuple(int)): Depth of each Swin Transformer layer.
+            num_heads (tuple(int)): Number of attention heads in different layers.
+            window_size (tuple): Window size. Default: 7
+            mlp_ratio (float): Ratio of mlp hidden dim to embedding dim. Default: 4
+            qkv_bias (bool): If True, add a learnable bias to query, key, value. Default: True
+            qk_scale (float): Override default qk scale of head_dim ** -0.5 if set. Default: None
+            drop_rate (float): Dropout rate. Default: 0
+            attn_drop_rate (float): Attention dropout rate. Default: 0
+            drop_path_rate (float): Stochastic depth rate. Default: 0.1
+            norm_layer (nn.Module): Normalization layer. Default: nn.LayerNorm.
+            ape (bool): If True, add absolute position embedding to the patch embedding. Default: False
+            patch_norm (bool): If True, add normalization after patch embedding. Default: True
+            use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
+        """    
+    
         super().__init__()
         self.img_size = img_size
         self.num_layers = len(depths)
@@ -784,6 +819,9 @@ class SwinTransformer(nn.Module):
         self._freeze_stages()
 
     def _freeze_stages(self):
+        """
+        Freeze stages param and norm stats.
+        """
         if self.frozen_stages >= 0:
             self.patch_embed.eval()
             for param in self.patch_embed.parameters():
@@ -801,7 +839,9 @@ class SwinTransformer(nn.Module):
                     param.requires_grad = False
 
     def init_weights(self, pretrained=None):
-        """Initialize the weights in backbone.
+        """
+        Initialize the weights in backbone.
+        
         Args:
             pretrained (str, optional): Path to pre-trained weights.
                 Defaults to None.
@@ -824,7 +864,9 @@ class SwinTransformer(nn.Module):
             raise TypeError("pretrained must be a str or None")
 
     def forward(self, x):
-        """Forward function."""
+        """
+        Forward function.
+        """
         x = self.patch_embed(x)
 
         Wh, Ww, Wt = x.size(2), x.size(3), x.size(4)
@@ -858,6 +900,8 @@ class SwinTransformer(nn.Module):
         return outs
 
     def train(self, mode=True):
-        """Convert the model into training mode while keep layers freezed."""
+        """
+        Convert the model into training mode while keep layers freezed.
+        """
         super(SwinTransformer, self).train(mode)
         self._freeze_stages()

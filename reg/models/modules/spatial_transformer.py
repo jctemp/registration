@@ -5,11 +5,15 @@ import torch.nn.functional as nnf
 
 class SpatialTransformerSeries(nn.Module):
     """
-    N-D Spatial Transformer
-    Obtained from https://github.com/voxelmorph/voxelmorph
+    Spatial Transformer for series of images
     """
 
     def __init__(self, size, mode="bilinear"):
+        """
+        Args:
+            size(tuple[int]): size of the input images
+            mode(str): interpolation mode
+        """
         super().__init__()
 
         self.mode = mode
@@ -34,6 +38,11 @@ class SpatialTransformerSeries(nn.Module):
         self.register_buffer("grid", grid)
 
     def forward(self, src, flow):
+        """
+        Args:
+            src: original image series
+            flow: 2d series displacment vector field
+        """
         # new locations
         new_locs = self.grid + flow
 
@@ -70,6 +79,11 @@ class SpatialTransformer(nn.Module):
     """
 
     def __init__(self, size, mode="bilinear"):
+        """
+        Args:
+            size(tuple[int]): size of the input images
+            mode(str): interpolation mode
+        """
         super().__init__()
 
         self.mode = mode
@@ -89,6 +103,11 @@ class SpatialTransformer(nn.Module):
         self.register_buffer("grid", grid)
 
     def forward(self, src, flow):
+        """
+        Args:
+            src: original image series
+            flow: n-d displacment vector field
+        """
         # new locations
         new_locs = self.grid + flow
         shape = flow.shape[2:]
