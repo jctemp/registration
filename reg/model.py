@@ -182,10 +182,14 @@ class TransMorphModule(pl.LightningModule):
         return loss, {"mean_neg_det": neg_det}
 
     def predict_step(self, batch, _):
-        fixed = self.fixed_image(batch)
-        warped, flows, disp = self.predict_series(batch, fixed)
+        warped, flows, disp = self(batch)
         return warped, flows, disp
 
+    def forward(self, x):
+        fixed = self.fixed_image(x)
+        warped, flows, disp = self.predict_series(x, fixed)
+        return warped, flows, disp
+    
     def configure_optimizers(self):
         optimizer = self.optimizer(self.net.parameters(), lr=self.lr)
         return optimizer
