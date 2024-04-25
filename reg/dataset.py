@@ -20,7 +20,7 @@ def standardize(image):
     return normalized
 
 
-def reader(path, start=None, end=None, mat=False):
+def reader(path, start=None, end=None, mat_out=False):
     mat = spio.loadmat(path)
     dcm = mat["dcm"]
     if start and end:
@@ -31,7 +31,7 @@ def reader(path, start=None, end=None, mat=False):
         dcm = dcm[:end]
     data = np.transpose(dcm, (1, 2, 0))[None, :, :, :]  # C, W, H, t
 
-    if mat:
+    if mat_out:
         return data, mat
     return data
 

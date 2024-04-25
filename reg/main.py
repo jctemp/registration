@@ -10,8 +10,6 @@ import torch
 
 
 def reg_train(args):
-    # Hyper Parameters
-
     optimizer_name = str.lower(args.optimizer)
     lr = float(args.lr)
     target_type = str.lower(args.target_type)
