@@ -20,8 +20,9 @@ def standardize(image):
     return normalized
 
 
-def reader(path, start=None, end=None):
-    dcm = spio.loadmat(path)["dcm"]
+def reader(path, start=None, end=None, mat=False):
+    mat = spio.loadmat(path)
+    dcm = mat["dcm"]
     if start and end:
         dcm = dcm[start:end]
     elif start:
@@ -29,6 +30,9 @@ def reader(path, start=None, end=None):
     elif end:
         dcm = dcm[:end]
     data = np.transpose(dcm, (1, 2, 0))[None, :, :, :]  # C, W, H, t
+
+    if mat:
+        return data, mat
     return data
 
 
@@ -65,12 +69,11 @@ class LungDataset(Dataset):
     def __getitem__(self, idx):
         data = reader(self.image_paths[idx], end=self.series_len)
 
+        ndat = data
+        if self.mod == "std":
+            ndat = standardize(data)
         if self.mod == "norm":
             ndat = normalize(data)
-        elif self.mod == "std":
-            ndat = standardize(data)
-        else:
-            ndat = data
 
         return torch.from_numpy(ndat.astype(np.float32))
 
