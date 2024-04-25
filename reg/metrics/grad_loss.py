@@ -27,10 +27,9 @@ import torch
 
 
 class Grad2d(torch.nn.Module):
-    def __init__(self, penalty="l1", loss_mult=None):
+    def __init__(self, penalty="l1"):
         super(Grad2d, self).__init__()
         self.penalty = penalty
-        self.loss_mult = loss_mult
 
     def forward(self, flow):
         dy = torch.abs(flow[:, :, 1:, :] - flow[:, :, :-1, :])
@@ -43,16 +42,13 @@ class Grad2d(torch.nn.Module):
         d = torch.mean(dx) + torch.mean(dy)
         grad = d / 2.0
 
-        if self.loss_mult is not None:
-            grad *= self.loss_mult
         return grad
 
 
 class Grad3d(torch.nn.Module):
-    def __init__(self, penalty="l1", loss_mult=None):
+    def __init__(self, penalty="l1"):
         super(Grad3d, self).__init__()
         self.penalty = penalty
-        self.loss_mult = loss_mult
 
     def forward(self, flow):
         dy = torch.abs(flow[:, :, 1:, :, :] - flow[:, :, :-1, :, :])
@@ -67,6 +63,4 @@ class Grad3d(torch.nn.Module):
         d = torch.mean(dx) + torch.mean(dy) + torch.mean(dz)
         grad = d / 3.0
 
-        if self.loss_mult is not None:
-            grad *= self.loss_mult
         return grad
