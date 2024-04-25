@@ -49,9 +49,17 @@ class SpatialTransformerSeries(nn.Module):
         new_locs = new_locs[..., [1, 0], :]
 
         # iterate over time dimension and resample each image
-        resampled = (torch.stack([nnf.grid_sample(src[:, :, :, :, i], new_locs[:, :, :, :, i], align_corners=True,
-                                                  mode=self.mode) for i in range(src.shape[-1])])
-                     .permute(1, 2, 3, 4, 0))
+        resampled = torch.stack(
+            [
+                nnf.grid_sample(
+                    src[:, :, :, :, i],
+                    new_locs[:, :, :, :, i],
+                    align_corners=True,
+                    mode=self.mode,
+                )
+                for i in range(src.shape[-1])
+            ]
+        ).permute(1, 2, 3, 4, 0)
 
         return resampled
 
@@ -61,7 +69,7 @@ class SpatialTransformer(nn.Module):
     N-D Spatial Transformer
     """
 
-    def __init__(self, size, mode='bilinear'):
+    def __init__(self, size, mode="bilinear"):
         super().__init__()
 
         self.mode = mode
@@ -78,7 +86,7 @@ class SpatialTransformer(nn.Module):
         # is included when saving weights to disk, so the model files are way bigger
         # than they need to be. so far, there does not appear to be an elegant solution.
         # see: https://discuss.pytorch.org/t/how-to-register-buffer-without-polluting-state-dict
-        self.register_buffer('grid', grid)
+        self.register_buffer("grid", grid)
 
     def forward(self, src, flow):
         # new locations

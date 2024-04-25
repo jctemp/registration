@@ -49,14 +49,24 @@ class DenseTransform(_Transform):
     """
 
     def __init__(self, svf=False, svf_steps=7, svf_scale=1):
-        super(DenseTransform, self).__init__(svf=svf, svf_steps=svf_steps, svf_scale=svf_scale)
+        super(DenseTransform, self).__init__(
+            svf=svf, svf_steps=svf_steps, svf_scale=svf_scale
+        )
 
     def compute_flow(self, x):
         return x
 
 
 class CubicBSplineFFDTransform(_Transform):
-    def __init__(self, ndim, img_size=(160, 192, 224), cps=(5, 5, 5), svf=False, svf_steps=7, svf_scale=1):
+    def __init__(
+        self,
+        ndim,
+        img_size=(160, 192, 224),
+        cps=(5, 5, 5),
+        svf=False,
+        svf_steps=7,
+        svf_scale=1,
+    ):
         """
         Compute dense displacement field of Cubic B-spline FFD transformation model
         from input control point parameters.
@@ -66,16 +76,17 @@ class CubicBSplineFFDTransform(_Transform):
             cps: (int or tuple) control point spacing in number of intervals between pixel/voxel centres
             svf: (bool) stationary velocity field formulation if True
         """
-        super(CubicBSplineFFDTransform, self).__init__(svf=svf,
-                                                       svf_steps=svf_steps,
-                                                       svf_scale=svf_scale)
+        super(CubicBSplineFFDTransform, self).__init__(
+            svf=svf, svf_steps=svf_steps, svf_scale=svf_scale
+        )
         self.ndim = ndim
         self.img_size = img_size  # param_ndim_setup(img_size, self.ndim)
         self.stride = cps  # param_ndim_setup(cps, self.ndim)
 
         self.kernels = self.set_kernel()
-        self.padding = [(len(k) - 1) // 2
-                        for k in self.kernels]  # the size of the kernel is always odd number
+        self.padding = [
+            (len(k) - 1) // 2 for k in self.kernels
+        ]  # the size of the kernel is always odd number
 
     def set_kernel(self):
         kernels = list()
@@ -95,11 +106,14 @@ class CubicBSplineFFDTransform(_Transform):
         flow = x
         for i, (k, s, p) in enumerate(zip(self.kernels, self.stride, self.padding)):
             k = k.to(dtype=x.dtype, device=x.device)
-            flow = conv1d(flow, dim=i + 2, kernel=k, stride=s, padding=p, transpose=True)
+            flow = conv1d(
+                flow, dim=i + 2, kernel=k, stride=s, padding=p, transpose=True
+            )
 
         #  crop the output to image size
         slicer = (slice(0, flow.shape[0]), slice(0, flow.shape[1])) + tuple(
-            slice(s, s + self.img_size[i]) for i, s in enumerate(self.stride))
+            slice(s, s + self.img_size[i]) for i, s in enumerate(self.stride)
+        )
         flow = flow[slicer]
         return flow
 
@@ -117,23 +131,27 @@ def normalise_disp(disp):
     ndim = disp.ndim - 2
 
     if type(disp) is np.ndarray:
-        norm_factors = 2. / np.array(disp.shape[2:])
+        norm_factors = 2.0 / np.array(disp.shape[2:])
         norm_factors = norm_factors.reshape(1, ndim, *(1,) * ndim)
 
     elif type(disp) is torch.Tensor:
-        norm_factors = torch.tensor(2.) / torch.tensor(disp.size()[2:], dtype=disp.dtype, device=disp.device)
+        norm_factors = torch.tensor(2.0) / torch.tensor(
+            disp.size()[2:], dtype=disp.dtype, device=disp.device
+        )
         norm_factors = norm_factors.view(1, ndim, *(1,) * ndim)
 
     else:
-        raise RuntimeError("Input data type not recognised, expect numpy.ndarray or torch.Tensor")
+        raise RuntimeError(
+            "Input data type not recognised, expect numpy.ndarray or torch.Tensor"
+        )
     return disp * norm_factors
 
 
-def svf_exp(flow, scale=1, steps=5, sampling='bilinear'):
+def svf_exp(flow, scale=1, steps=5, sampling="bilinear"):
     """
     Exponential of velocity field by Scaling and Squaring
     """
-    disp = flow * (scale / (2 ** steps))
+    disp = flow * (scale / (2**steps))
     for _ in range(steps):
         disp = disp + warp(x=disp, disp=disp, interp_mode=sampling)
     return disp
@@ -150,7 +168,7 @@ def cubic_bspline_value(x: float, derivative: int = 0) -> float:
     # 0-th order derivative
     if derivative == 0:
         if t < 1:
-            return 2 / 3 + (0.5 * t - 1) * t ** 2
+            return 2 / 3 + (0.5 * t - 1) * t**2
         return -((t - 2) ** 3) / 6
     # 1st order derivative
     if derivative == 1:
@@ -166,7 +184,9 @@ def cubic_bspline_value(x: float, derivative: int = 0) -> float:
         return -t + 2
 
 
-def cubic_bspline1d(stride, derivative: int = 0, dtype=None, device=None) -> torch.Tensor:
+def cubic_bspline1d(
+    stride, derivative: int = 0, dtype=None, device=None
+) -> torch.Tensor:
     """Cubic B-spline kernel for specified control point spacing.
     Args:
         stride: Spacing between control points with respect to original (upsampled) image grid.
@@ -189,8 +209,15 @@ def cubic_bspline1d(stride, derivative: int = 0, dtype=None, device=None) -> tor
     return kernel.to(device)
 
 
-def conv1d(data: Tensor, kernel: Tensor, dim: int = -1, stride: int = 1, dilation: int = 1, padding: int = 0,
-           transpose: bool = False) -> Tensor:
+def conv1d(
+    data: Tensor,
+    kernel: Tensor,
+    dim: int = -1,
+    stride: int = 1,
+    dilation: int = 1,
+    padding: int = 0,
+    transpose: bool = False,
+) -> Tensor:
     """
     Convolve data with 1-dimensional kernel along specified dimension.
     """
@@ -234,7 +261,9 @@ def warp(x, disp, interp_mode="bilinear"):
     disp = normalise_disp(disp)
 
     # generate standard mesh grid
-    grid = torch.meshgrid([torch.linspace(-1, 1, size[i]).type_as(disp) for i in range(ndim)])
+    grid = torch.meshgrid(
+        [torch.linspace(-1, 1, size[i]).type_as(disp) for i in range(ndim)]
+    )
     grid = [grid[i].requires_grad_(False) for i in range(ndim)]
 
     # apply displacements to each direction (N, *size)

@@ -53,9 +53,9 @@
           cudaPackages.cudnn
 
           python
+          pkgs.ruff
 
           # Generic
-          pythonPackages.black
           pythonPackages.ipykernel
           pythonPackages.pip
 
@@ -73,6 +73,8 @@
           pythonPackages.polars
           pythonPackages.scikit-learn
           pythonPackages.seaborn
+          pythonPackages.pydicom
+          pythonPackages.pylint
 
           # ML
           pythonCudaPackages.torch-bin

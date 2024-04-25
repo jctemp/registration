@@ -106,7 +106,6 @@ def jacobian_det(disp):
         return Jdet0 - Jdet1 + Jdet2
 
     else:  # must be 2
-
         dfdx = J[0]
         dfdy = J[1]
 

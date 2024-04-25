@@ -37,7 +37,6 @@ class NCC(torch.nn.Module):
         self.weight = weight
 
     def forward(self, target, prediction):
-
         t = target
         p = prediction
 

@@ -27,8 +27,7 @@ import torch
 
 
 class Grad2d(torch.nn.Module):
-
-    def __init__(self, penalty='l1', loss_mult=None):
+    def __init__(self, penalty="l1", loss_mult=None):
         super(Grad2d, self).__init__()
         self.penalty = penalty
         self.loss_mult = loss_mult
@@ -37,7 +36,7 @@ class Grad2d(torch.nn.Module):
         dy = torch.abs(flow[:, :, 1:, :] - flow[:, :, :-1, :])
         dx = torch.abs(flow[:, :, :, 1:] - flow[:, :, :, :-1])
 
-        if self.penalty == 'l2':
+        if self.penalty == "l2":
             dy = dy * dy
             dx = dx * dx
 
@@ -50,8 +49,7 @@ class Grad2d(torch.nn.Module):
 
 
 class Grad3d(torch.nn.Module):
-
-    def __init__(self, penalty='l1', loss_mult=None):
+    def __init__(self, penalty="l1", loss_mult=None):
         super(Grad3d, self).__init__()
         self.penalty = penalty
         self.loss_mult = loss_mult
@@ -61,7 +59,7 @@ class Grad3d(torch.nn.Module):
         dx = torch.abs(flow[:, :, :, 1:, :] - flow[:, :, :, :-1, :])
         dz = torch.abs(flow[:, :, :, :, 1:] - flow[:, :, :, :, :-1])
 
-        if self.penalty == 'l2':
+        if self.penalty == "l2":
             dy = dy * dy
             dx = dx * dx
             dz = dz * dz

@@ -11,6 +11,7 @@ def get_transmorph_config():
 # ======================================================================================================================
 # MODEL CAPACITY
 
+
 def get_transmorph_tiny_config():
     config = ml_collections.ConfigDict()
     config.update(get_transmorph_only_config())
@@ -35,6 +36,7 @@ def get_transmorph_large_config():
 # ======================================================================================================================
 # MODEL EMBEDDINGS
 
+
 def get_transmorph_no_rel_pos_embedding_config():
     config = ml_collections.ConfigDict()
     config.update(get_transmorph_config())
@@ -58,6 +60,7 @@ def get_transmorph_lrn_pos_embedding_config():
 
 # ======================================================================================================================
 # MODEL SKIP-CONNECTIONS
+
 
 def get_transmorph_no_conv_skip_config():
     config = ml_collections.ConfigDict()
@@ -86,16 +89,14 @@ def get_transmorph_no_skip_config():
 
 
 CONFIGS = {
-    'transmorph': get_transmorph_config(),
-    'transmorph-tiny': get_transmorph_tiny_config(),
-    'transmorph-small': get_transmorph_small_config(),
-    'transmorph-large': get_transmorph_large_config(),
-
-    'transmorph-no-conv-skip': get_transmorph_no_conv_skip_config(),
-    'transmorph-no-trans-skip': get_transmorph_no_trans_skip_config(),
-    'transmorph-no-skip': get_transmorph_no_skip_config(),
-
-    'transmorph-lrn_pos_embedding': get_transmorph_lrn_pos_embedding_config(),
-    'transmorph-sin_pos_embedding': get_transmorph_sin_pos_embedding_config(),
-    'transmorph-no_rel_pos_embedding': get_transmorph_no_rel_pos_embedding_config(),
+    "transmorph": get_transmorph_config(),
+    "transmorph-tiny": get_transmorph_tiny_config(),
+    "transmorph-small": get_transmorph_small_config(),
+    "transmorph-large": get_transmorph_large_config(),
+    "transmorph-no-conv-skip": get_transmorph_no_conv_skip_config(),
+    "transmorph-no-trans-skip": get_transmorph_no_trans_skip_config(),
+    "transmorph-no-skip": get_transmorph_no_skip_config(),
+    "transmorph-lrn_pos_embedding": get_transmorph_lrn_pos_embedding_config(),
+    "transmorph-sin_pos_embedding": get_transmorph_sin_pos_embedding_config(),
+    "transmorph-no_rel_pos_embedding": get_transmorph_no_rel_pos_embedding_config(),
 }

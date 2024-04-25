@@ -37,10 +37,22 @@ def reader(path, start=None, end=None, mat=False):
 
 
 class LungDataset(Dataset):
-    def __init__(self, train=True, val=False, split=(0.8, 0.1), seed=42, series_len=None, mod="norm"):
-        assert series_len is None or series_len % 8 == 0, "series_len must be divisible by 8"
+    def __init__(
+        self,
+        train=True,
+        val=False,
+        split=(0.8, 0.1),
+        seed=42,
+        series_len=None,
+        mod="norm",
+    ):
+        assert (
+            series_len is None or series_len % 8 == 0
+        ), "series_len must be divisible by 8"
         assert not (train and val), "Either train or val must be True, not both"
-        assert mod == "norm" or mod == "std" or mod is None, "mod can be 'norm', 'std' or None"
+        assert (
+            mod == "norm" or mod == "std" or mod is None
+        ), "mod can be 'norm', 'std' or None"
 
         self.mod = mod
 
@@ -53,15 +65,23 @@ class LungDataset(Dataset):
         test_len = total_len - (train_len + val_len)
 
         generator = torch.Generator().manual_seed(seed)
-        train_set, val_set, test_set = random_split(subjects, [train_len, val_len, test_len], generator)
+        train_set, val_set, test_set = random_split(
+            subjects, [train_len, val_len, test_len], generator
+        )
 
         sub_path = "Series*/dicoms.mat"
         if train:
-            self.image_paths = [d for p in train_set for d in glob.glob(f"{p}/{sub_path}")]
+            self.image_paths = [
+                d for p in train_set for d in glob.glob(f"{p}/{sub_path}")
+            ]
         elif val:
-            self.image_paths = [d for p in val_set for d in glob.glob(f"{p}/{sub_path}")]
+            self.image_paths = [
+                d for p in val_set for d in glob.glob(f"{p}/{sub_path}")
+            ]
         else:
-            self.image_paths = [d for p in test_set for d in glob.glob(f"{p}/{sub_path}")]
+            self.image_paths = [
+                d for p in test_set for d in glob.glob(f"{p}/{sub_path}")
+            ]
 
     def __len__(self):
         return len(self.image_paths)
@@ -79,8 +99,16 @@ class LungDataset(Dataset):
 
 
 class LungDataModule(pl.LightningDataModule):
-    def __init__(self, batch_size=1, num_workers=1, pin_memory=True, seed=42, split=(0.8, 0.1), series_len=None,
-                 mod="norm"):
+    def __init__(
+        self,
+        batch_size=1,
+        num_workers=1,
+        pin_memory=True,
+        seed=42,
+        split=(0.8, 0.1),
+        series_len=None,
+        mod="norm",
+    ):
         super().__init__()
 
         self.batch_size = batch_size
@@ -106,7 +134,8 @@ class LungDataModule(pl.LightningDataModule):
             split=self.split,
             seed=self.seed,
             series_len=self.series_len,
-            mod=self.mod)
+            mod=self.mod,
+        )
 
         self.val_set = LungDataset(
             train=False,
@@ -114,7 +143,8 @@ class LungDataModule(pl.LightningDataModule):
             split=self.split,
             seed=self.seed,
             series_len=None,
-            mod=self.mod)
+            mod=self.mod,
+        )
 
         self.test_set = LungDataset(
             train=False,
@@ -122,7 +152,8 @@ class LungDataModule(pl.LightningDataModule):
             split=self.split,
             seed=self.seed,
             series_len=None,
-            mod=self.mod)
+            mod=self.mod,
+        )
 
     def train_dataloader(self):
         return DataLoader(

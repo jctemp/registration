@@ -26,7 +26,8 @@ def reg_train(args):
         image_losses=image_losses,
         flow_losses=flow_losses,
         optimizer_name=optimizer_name,
-        series_len=series_len)
+        series_len=series_len,
+    )
 
     model = TransMorphModule(
         net=net,
@@ -53,9 +54,13 @@ def reg_train(args):
         logger.experiment.config["series_len"] = series_len
         logger.experiment.config["model_name"] = args.model_name
         logger.experiment.config["image_loss"] = [loss for loss, weight in image_losses]
-        logger.experiment.config["image_loss_weight"] = [weight for loss, weight in image_losses]
+        logger.experiment.config["image_loss_weight"] = [
+            weight for loss, weight in image_losses
+        ]
         logger.experiment.config["flow_loss"] = [loss for loss, weight in flow_losses]
-        logger.experiment.config["flow_loss_weight"] = [weight for loss, weight in flow_losses]
+        logger.experiment.config["flow_loss_weight"] = [
+            weight for loss, weight in flow_losses
+        ]
         logger.experiment.config["data_mod"] = data_mod
         trainer_logger = [logger]
 
@@ -64,7 +69,7 @@ def reg_train(args):
     checkpoint_callback = ModelCheckpoint(
         monitor="val_loss",
         dirpath=f"model_weights_v2/{args.model_name}-{image_loss_str}-{flow_loss_str}-"
-                f"{optimizer_name}-{str(lr)}-{target_type}-{max_epoch}-{series_len}-{data_mod}",
+        f"{optimizer_name}-{str(lr)}-{target_type}-{max_epoch}-{series_len}-{data_mod}",
         filename="{val_loss:.8f}&{epoch}",
         save_top_k=3,
     )
@@ -83,8 +88,13 @@ def reg_train(args):
     num_workers = 1 if args.num_workers is None else args.num_workers
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
-    datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                                series_len=None, mod=data_mod)  # norm, std, None
+    datamodule = LungDataModule(
+        batch_size=batch_size,
+        num_workers=num_workers,
+        pin_memory=True,
+        series_len=None,
+        mod=data_mod,
+    )  # norm, std, None
     trainer.fit(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
@@ -100,7 +110,8 @@ def reg_test(args):
         image_losses=image_losses,
         flow_losses=flow_losses,
         optimizer_name=None,
-        series_len=series_len)
+        series_len=series_len,
+    )
 
     model = TransMorphModule.load_from_checkpoint(
         args.path_to_ckpt,
@@ -125,7 +136,9 @@ def reg_test(args):
     num_workers = 1 if args.num_workers is None else args.num_workers
     ckpt_path = None if args.path_to_ckpt is None else args.path_to_ckpt
 
-    datamodule = LungDataModule(batch_size=batch_size, num_workers=num_workers, pin_memory=True, series_len=200)
+    datamodule = LungDataModule(
+        batch_size=batch_size, num_workers=num_workers, pin_memory=True, series_len=200
+    )
     trainer.test(model, datamodule=datamodule, ckpt_path=ckpt_path)
 
 
@@ -135,29 +148,51 @@ def reg_pred(args):
 
 
 def main():
-    parser = argparse.ArgumentParser(description="CLI for Training, Testing, and Prediction")
+    parser = argparse.ArgumentParser(
+        description="CLI for Training, Testing, and Prediction"
+    )
     # parser.add_argument("--verbose", action="store_true", help="Verbose mode")
     parser.add_argument("--log", action="store_true", help="Log to wandb")
-    parser.add_argument("--devices", type=int, help="The number of available CUDA devices")
+    parser.add_argument(
+        "--devices", type=int, help="The number of available CUDA devices"
+    )
     parser.add_argument("--num_workers", type=int, help="The number of workers")
     parser.add_argument("--path_to_ckpt", help="Path to checkpoint file")
-    parser.add_argument("--data_mod", type=str, help="Type of modification to data (norm, std, None)")
+    parser.add_argument(
+        "--data_mod", type=str, help="Type of modification to data (norm, std, None)"
+    )
 
     subparsers = parser.add_subparsers(dest="command")
 
     train_parser = subparsers.add_parser("train", help="Train the model")
-    train_parser.add_argument("--optimizer", default="adam", help="Optimizer for the training")
+    train_parser.add_argument(
+        "--optimizer", default="adam", help="Optimizer for the training"
+    )
     train_parser.add_argument("--lr", default="1e-4", help="Learning rate")
-    train_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
-    train_parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
-    train_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
+    train_parser.add_argument(
+        "--target_type",
+        default="last",
+        help="Volume or time series (last, mean, group)",
+    )
+    train_parser.add_argument(
+        "--max_epoch", default=100, help="The maximum number of epochs"
+    )
+    train_parser.add_argument(
+        "--series_len", default=192, help="The length of the series, e.g. 192"
+    )
     train_parser.add_argument("model_name", help="The name of the model")
     train_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     train_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl2d:1")
 
     test_parser = subparsers.add_parser("test", help="Test the model")
-    test_parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
-    test_parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
+    test_parser.add_argument(
+        "--target_type",
+        default="last",
+        help="Volume or time series (last, mean, group)",
+    )
+    test_parser.add_argument(
+        "--series_len", default=192, help="The length of the series, e.g. 192"
+    )
     test_parser.add_argument("model_name", help="The name of the model")
     test_parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
     test_parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")

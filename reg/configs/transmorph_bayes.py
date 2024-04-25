@@ -11,6 +11,7 @@ def get_transmorph_config():
 # ======================================================================================================================
 # MODEL CAPACITY
 
+
 def get_transmorph_tiny_config():
     config = ml_collections.ConfigDict()
     config.update(get_transmorph_bayes_config())
@@ -35,6 +36,7 @@ def get_transmorph_large_config():
 # ======================================================================================================================
 # MODEL EMBEDDINGS
 
+
 def get_transmorph_no_rel_pos_embedding_config():
     config = ml_collections.ConfigDict()
     config.update(get_transmorph_config())
@@ -58,6 +60,7 @@ def get_transmorph_lrn_pos_embedding_config():
 
 # ======================================================================================================================
 # MODEL SKIP-CONNECTIONS
+
 
 def get_transmorph_no_conv_skip_config():
     config = ml_collections.ConfigDict()
@@ -86,16 +89,14 @@ def get_transmorph_no_skip_config():
 
 
 CONFIGS = {
-    'transmorph-bayes': get_transmorph_config(),
-    'transmorph-bayes-tiny': get_transmorph_tiny_config(),
-    'transmorph-bayes-small': get_transmorph_small_config(),
-    'transmorph-bayes-large': get_transmorph_large_config(),
-
-    'transmorph-bayes-no-conv-skip': get_transmorph_no_conv_skip_config(),
-    'transmorph-bayes-no-trans-skip': get_transmorph_no_trans_skip_config(),
-    'transmorph-bayes-no-skip': get_transmorph_no_skip_config(),
-
-    'transmorph-bayes-lrn_pos_embedding': get_transmorph_lrn_pos_embedding_config(),
-    'transmorph-bayes-sin_pos_embedding': get_transmorph_sin_pos_embedding_config(),
-    'transmorph-bayes-no_rel_pos_embedding': get_transmorph_no_rel_pos_embedding_config(),
+    "transmorph-bayes": get_transmorph_config(),
+    "transmorph-bayes-tiny": get_transmorph_tiny_config(),
+    "transmorph-bayes-small": get_transmorph_small_config(),
+    "transmorph-bayes-large": get_transmorph_large_config(),
+    "transmorph-bayes-no-conv-skip": get_transmorph_no_conv_skip_config(),
+    "transmorph-bayes-no-trans-skip": get_transmorph_no_trans_skip_config(),
+    "transmorph-bayes-no-skip": get_transmorph_no_skip_config(),
+    "transmorph-bayes-lrn_pos_embedding": get_transmorph_lrn_pos_embedding_config(),
+    "transmorph-bayes-sin_pos_embedding": get_transmorph_sin_pos_embedding_config(),
+    "transmorph-bayes-no_rel_pos_embedding": get_transmorph_no_rel_pos_embedding_config(),
 }

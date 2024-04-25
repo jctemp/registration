@@ -7,7 +7,7 @@ import torch.nn as nn
 import torch.nn.functional as nnf
 
 
-def conv_nd(ndim, in_channels, out_channels, kernel_size=3, stride=1, padding=1, a=0.):
+def conv_nd(ndim, in_channels, out_channels, kernel_size=3, stride=1, padding=1, a=0.0):
     """
     Convolution of generic dimension
     Args:
@@ -21,27 +21,37 @@ def conv_nd(ndim, in_channels, out_channels, kernel_size=3, stride=1, padding=1,
     Returns:
         (nn.Module instance) Instance of convolution module of the specified dimension
     """
-    conv = getattr(nn, f"Conv{ndim}d")(in_channels=in_channels, out_channels=out_channels, kernel_size=kernel_size,
-                                       stride=stride, padding=padding)
+    conv = getattr(nn, f"Conv{ndim}d")(
+        in_channels=in_channels,
+        out_channels=out_channels,
+        kernel_size=kernel_size,
+        stride=stride,
+        padding=padding,
+    )
     nn.init.kaiming_uniform_(conv.weight, a=a)
     return conv
 
 
 def interpolate_(x, scale_factor=None, size=None, mode=None):
-    """ Wrapper for torch.nn.functional.interpolate """
-    if mode == 'nearest':
+    """Wrapper for torch.nn.functional.interpolate"""
+    if mode == "nearest":
         mode = mode
     else:
         ndim = x.ndim - 2
         if ndim == 1:
-            mode = 'linear'
+            mode = "linear"
         elif ndim == 2:
-            mode = 'bilinear'
+            mode = "bilinear"
         elif ndim == 3:
-            mode = 'trilinear'
+            mode = "trilinear"
         else:
-            raise ValueError(f'Data dimension ({ndim}) must be 2 or 3')
-    y = nnf.interpolate(x, scale_factor=scale_factor, size=size, mode=mode, )
+            raise ValueError(f"Data dimension ({ndim}) must be 2 or 3")
+    y = nnf.interpolate(
+        x,
+        scale_factor=scale_factor,
+        size=size,
+        mode=mode,
+    )
     return y
 
 
@@ -59,9 +69,15 @@ class TransMorphBspline(nn.Module):
         resize_channels = config.resize_channels
         for i, c in enumerate(cps):
             if c > 8 or c < 2:
-                raise ValueError(f"Control point spacing ({c}) at dim ({i}) not supported, must be within [1, 8]")
-        self.output_size = tuple([int(math.ceil((im_size - 1) / c) + 1 + 2)
-                                  for im_size, c in zip(img_size, cps)])
+                raise ValueError(
+                    f"Control point spacing ({c}) at dim ({i}) not supported, must be within [1, 8]"
+                )
+        self.output_size = tuple(
+            [
+                int(math.ceil((im_size - 1) / c) + 1 + 2)
+                for im_size, c in zip(img_size, cps)
+            ]
+        )
 
         self.transformer = SwinTransformer(
             img_size=config.img_size,
@@ -91,28 +107,28 @@ class TransMorphBspline(nn.Module):
             embed_dim * 8,
             embed_dim * 4,
             skip_channels=embed_dim * 4 if self.if_transskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )
 
         self.up1 = DecoderBlock(
             embed_dim * 4,
             embed_dim * 2,
             skip_channels=embed_dim * 2 if self.if_transskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 20, 20, 64
 
         self.up2 = DecoderBlock(
             embed_dim * 2,
             embed_dim,
             skip_channels=embed_dim if self.if_transskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 40, 40, 64
 
         self.up3 = DecoderBlock(
             embed_dim,
             embed_dim // 2,
             skip_channels=embed_dim // 2 if self.if_convskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 80, 80, 128
 
         self.c1 = Conv3dReLU(config.in_chans, embed_dim // 2, 3, 1, use_batchnorm=False)
@@ -124,9 +140,11 @@ class TransMorphBspline(nn.Module):
             if i == 0:
                 in_ch = embed_dim // 2
             else:
-                in_ch = resize_channels[i-1]
+                in_ch = resize_channels[i - 1]
             out_ch = resize_channels[i]
-            self.resize_conv.append(nn.Sequential(conv_nd(ndim, in_ch, out_ch, a=0.2), nn.LeakyReLU(0.2)))
+            self.resize_conv.append(
+                nn.Sequential(conv_nd(ndim, in_ch, out_ch, a=0.2), nn.LeakyReLU(0.2))
+            )
 
         # final prediction layer
         self.out_layer = conv_nd(ndim, resize_channels[-1], ndim)

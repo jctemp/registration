@@ -39,39 +39,41 @@ class TransMorph(nn.Module):
             embed_dim * 8,
             embed_dim * 4,
             skip_channels=embed_dim * 4 if self.if_transskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )
 
         self.up1 = DecoderBlock(
             embed_dim * 4,
             embed_dim * 2,
             skip_channels=embed_dim * 2 if self.if_transskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 20, 20, 64
 
         self.up2 = DecoderBlock(
             embed_dim * 2,
             embed_dim,
             skip_channels=embed_dim if self.if_transskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 40, 40, 64
 
         self.up3 = DecoderBlock(
             embed_dim,
             embed_dim // 2,
             skip_channels=embed_dim // 2 if self.if_convskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 80, 80, 128
 
         self.up4 = DecoderBlock(
             embed_dim // 2,
             config.reg_head_chan,
             skip_channels=config.reg_head_chan if self.if_convskip else 0,
-            use_batchnorm=False
+            use_batchnorm=False,
         )  # 384, 160, 160, 256
 
         self.c1 = Conv3dReLU(config.in_chans, embed_dim // 2, 3, 1, use_batchnorm=False)
-        self.c2 = Conv3dReLU(config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False)
+        self.c2 = Conv3dReLU(
+            config.in_chans, config.reg_head_chan, 3, 1, use_batchnorm=False
+        )
 
         self.reg_head2d = RegistrationHead(
             in_channels=config.reg_head_chan,
