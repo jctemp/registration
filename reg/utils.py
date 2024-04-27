@@ -56,7 +56,7 @@ def load_best_model(ckpt_dir):
     best_ckpt = ckpt_dir / ckpt_file_names[0]
     val_loss, epoch = ckpt_file_names[0].split("&")
     val_loss = val_loss.split("=")[1]
-    epoch = epoch.split("=")[2].split(".")[0]
+    epoch = epoch.split("=")[1].split(".")[0]
 
     ident = str(ckpt_dir.name).split("-")
     if len(ident) == 9:
