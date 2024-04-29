@@ -108,6 +108,7 @@ def main():
             num_workers=n_available_cores,
         )
 
+        torch.set_float32_matmul_precision("high")
         trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
         trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
 

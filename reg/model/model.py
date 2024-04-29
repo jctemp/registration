@@ -53,7 +53,7 @@ class TransMorphModule(pl.LightningModule):
             loss *= weight
         return loss
 
-    def _extract_fixed_image(self, series: torch.Tensor):
+    def extract_fixed_image(self, series: torch.Tensor):
         if self.registration_target == RegistrationTarget.LAST:
             return series[..., -1].view(series.shape[:-1])
         elif self.registration_target == RegistrationTarget.MEAN:
@@ -69,7 +69,7 @@ class TransMorphModule(pl.LightningModule):
 
     def _segment_registration(self, series):
         # Prepare to process series
-        fixed = self._extract_fixed_image(series).unsqueeze(-1)
+        fixed = self.extract_fixed_image(series).unsqueeze(-1)
         stride = self.registration_depth - 1
         max_depth = series.shape[-1]
 
@@ -123,14 +123,6 @@ class TransMorphModule(pl.LightningModule):
         raise NotImplementedError()
 
     def forward(self, series: torch.Tensor):
-        # Check image width and height TODO: help
-        assert (
-            series.shape[:-1] == self.net.transformer.img_size[:-1],
-            "The tensor x does not fulfill TransMorph input requirements. "
-            f"Expected {self.net.transformer.img_size[:-1]}, Got {series.shape[:-1]}. "
-            f"Note: last dimension was removed as it is not relevant for the input.",
-        )
-
         if RegistrationStrategy.SOREG:
             return self._segment_registration(series)
         elif RegistrationStrategy.GOREG:

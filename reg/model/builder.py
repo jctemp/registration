@@ -35,6 +35,7 @@ class TransMorphModuleBuilder:
             config = json.load(data)
 
         builder = cls()
+        builder.module = TransMorphModule.load_from_checkpoint(str(ckpt), strict=strict)
 
         (builder.set_network(config["network"])
          .set_criteria_warped(config["criteria_warped"])
