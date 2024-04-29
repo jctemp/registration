@@ -4,6 +4,7 @@ import pytorch_lightning as pl
 import pytorch_lightning.callbacks as plc
 import pytorch_lightning.loggers as pll
 import torch
+import json
 
 from reg.cli.parser import create_parser
 from reg.data import LungDataModule
@@ -54,8 +55,14 @@ def main():
             f"network_{args.network}.criteria-warped_{args.criteria_warped}.criteria-flow_{args.criteria_flow}."
             f"reg-strategy_{args.registration_strategy}.reg-target_{args.registration_target}."
             f"reg-depth_{args.registration_depth}.ident-loss_{args.identity_loss}.optimizer_{args.optimizer}."
-            f"learning-rate_{args.learning_rate}"
+            f"learning-rate_{args.learning_rate:.0E}"
         )
+        run_path = f"model_weights_v3/{run}"
+
+        if not os.path.exists(run_path):
+            os.mkdir(run_path)
+        with open(f"{run_path}/config.json", "w") as data:
+            json.dump(config, data)
 
         if args.log:
             wandb_logger = pll.WandbLogger(
@@ -66,7 +73,7 @@ def main():
 
         checkpoint_callback = plc.ModelCheckpoint(
             monitor="val_loss",
-            dirpath=f"model_weights_v3/{run}",
+            dirpath=run_path,
             filename="{val_loss:.8f}&{epoch}",
             save_top_k=5,
         )
