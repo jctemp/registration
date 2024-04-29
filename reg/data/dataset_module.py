@@ -1,6 +1,6 @@
-from typing import List, Tuple
+from typing import Tuple
 
-from torch.utils.data import ConcatDataset, DataLoader
+from torch.utils.data import DataLoader
 import pytorch_lightning as pl
 import torchvision.transforms
 
@@ -86,29 +86,26 @@ class LungDataModule(pl.LightningDataModule):
                 test=True,
             )
 
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_set,
+            batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+        )
 
-def train_dataloader(self):
-    return DataLoader(
-        self.train_set,
-        batch_size=self.batch_size,
-        pin_memory=self.pin_memory,
-        num_workers=self.num_workers,
-    )
+    def val_dataloader(self):
+        return DataLoader(
+            self.val_set,
+            batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+        )
 
-
-def val_dataloader(self):
-    return DataLoader(
-        self.val_set,
-        batch_size=self.batch_size,
-        pin_memory=self.pin_memory,
-        num_workers=self.num_workers,
-    )
-
-
-def test_dataloader(self):
-    return DataLoader(
-        self.test_set,
-        batch_size=self.batch_size,
-        pin_memory=self.pin_memory,
-        num_workers=self.num_workers,
-    )
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_set,
+            batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+        )
