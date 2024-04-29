@@ -3,33 +3,92 @@
 import argparse
 import os
 
-parser = argparse.ArgumentParser(description="CLI for Batching")
-parser.add_argument("--cpu", type=int, default=8, help="The number of CPUs")
-parser.add_argument("--mem", type=str, default=16, help="The memory in GB")
-parser.add_argument("--gpu", type=int, default=1, help="The number of GPUs")
-parser.add_argument("--ckpt", type=str, default=None, help="The path to the checkpoint file")
-parser.add_argument("--data_mod", type=str, help="Type of modification to data (norm, std, None)")
+from reg.transmorph.configs import CONFIG_TM
 
-parser.add_argument("--optimizer", default="adam", help="Optimizer for the training")
-parser.add_argument("--lr", default="1e-4", help="Learning rate")
-parser.add_argument("--target_type", default="last", help="Volume or time series (last, mean, group)")
-parser.add_argument("--max_epoch", default=100, help="The maximum number of epochs")
-parser.add_argument("--series_len", default=192, help="The length of the series, e.g. 192")
-parser.add_argument("model_name", help="The name of the model")
-parser.add_argument("image_loss", help="The image loss function, e.g. mse:1")
-parser.add_argument("flow_loss", help="The flow loss function, e.g. gl:1")
+parser = argparse.ArgumentParser(
+    prog="reg", description="Series-based TransMorph registration CLI"
+)
+parser.add_argument("--cpu", type=int, default=8)
+parser.add_argument("--mem", type=int, default=16)
+parser.add_argument("--gpu", type=int, default=1)
+parser.add_argument("-l", "--log", action="store_true", help="enable logging")
+parser.add_argument(
+    "--resume", type=str, help="checkpoint file load to continue training"
+)
+parser.add_argument(
+    "--epochs", type=int, default=100, help="number of epochs to train the model"
+)
+parser.add_argument(
+    "network",
+    type=str,
+    default="transmorph",
+    help="the name of the network configuration preset.",
+    choices=list(CONFIG_TM.keys()),
+    nargs="?",
+)
+parser.add_argument(
+    "--criteria_warped",
+    type=str,
+    default="gmi-1",
+    help="metric to score deformation, e.g. 'gmi-1-ncc-1'",
+)
+parser.add_argument(
+    "--criteria_flow",
+    type=str,
+    default="gl2d-1",
+    help="regularization for DVF, e.g. 'gl2d-1-bel-1'",
+)
+parser.add_argument(
+    "--optimizer", type=str, default="adam", help="optimizer for gradient descent"
+)
+parser.add_argument(
+    "--learning_rate",
+    type=float,
+    default=1e-4,
+    help="step size for gradient descent",
+)
+parser.add_argument(
+    "--registration_strategy",
+    type=str,
+    default="soreg",
+    help="register segment or group-wise",
+    choices=["soreg", "goreg"],
+)
+parser.add_argument(
+    "--registration_target",
+    type=str,
+    default="last",
+    help="the selection process to find a fixed image",
+    choices=["last", "mean"],
+)
+parser.add_argument(
+    "--registration_depth",
+    type=int,
+    default=32,
+    help="the number of simultaneously registered images",
+    choices=range(32, 256, 32),
+)
+parser.add_argument(
+    "--identity_loss",
+    action="store_true",
+    help="consider target image deformation",
+)
 
 args = parser.parse_args()
 
-run = (f"{args.model_name}-{args.image_loss}-{args.flow_loss}-{args.optimizer}-{args.lr}-"
-       f"{args.target_type}-{args.max_epoch}-{args.series_len}-{args.max_epoch}-{args.data_mod}")
+run = (
+    f"network_{args.network}.criteria-warped_{args.criteria_warped}.criteria-flow_{args.criteria_flow}."
+    f"reg-strategy_{args.registration_strategy}.reg-target_{args.registration_target}."
+    f"reg-depth_{args.registration_depth}.ident-loss_{args.identity_loss}.optimizer_{args.optimizer}."
+    f"learning-rate_{args.learning_rate}"
+)
 
 # Build bash script
 bash_script = f"""#!/bin/bash
 #
 #SBATCH --job-name=registration_job_gpu
-#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_{run}_out.txt
-#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/log/registration_{run}_err.txt
+#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/log/{run}_out.txt
+#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/log/{run}_err.txt
 #SBATCH --time=7-00:00:00
 #
 #SBATCH --cpus-per-task={args.cpu}
@@ -41,17 +100,21 @@ bash_script = f"""#!/bin/bash
 #SBATCH --mail-type=ALL
 
 module load Python/3.10.4
-source /hpc/scratch/project/jvc-lab/stud/registration/.venv/bin/activate
-cd /hpc/scratch/project/jvc-lab/stud/registration/reg
+cd /hpc/scratch/project/jvc-lab/stud/registration
+source ./.venv/bin/activate
 """
 
-bash_script += (f"python main.py --log --devices {args.gpu} --num_workers {args.cpu} --data_mod {args.data_mod} "
-                f"train {args.model_name} '{args.image_loss}' '{args.flow_loss}' "
+bash_script += (f"python -m reg"
+                f"train {args.network} "
+                f"--criteria_warped {args.criteria_warped} "
+                f"--criteria_flow {args.criteria_flow} "
+                f"--registration_strategy {args.registration_strategy} "
+                f"--registration_target {args.registration_target} "
+                f"--registration_depth {args.registration_depth} "
+                f"--identity_loss "
                 f"--optimizer {args.optimizer} "
-                f"--lr {args.lr} "
-                f"--target_type {args.target_type} "
-                f"--max_epoch {args.max_epoch} "
-                f"--series_len {args.series_len} ")
+                f"--learning_rate {args.learning_rate} "
+                f"--epochs {args.epochs}")
 
 if args.ckpt is not None:
     bash_script += f" --path_to_ckpt {args.ckpt}"
