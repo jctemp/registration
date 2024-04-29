@@ -23,13 +23,13 @@ class LungDataModule(pl.LightningDataModule):
     """
 
     def __init__(
-        self,
-        root_dir: str,
-        max_series_length: int = None,
-        split: Tuple[float, float, float] = (0.7, 0.1, 0.2),
-        seed: int = 42,
-        pin_memory: bool | Tuple[bool, bool, bool] = True,
-        num_workers: int = 1,
+            self,
+            root_dir: str,
+            max_series_length: int = None,
+            split: Tuple[float, float, float] = (0.7, 0.1, 0.2),
+            seed: int = 42,
+            pin_memory: bool | Tuple[bool, bool, bool] = True,
+            num_workers: int = 1,
     ):
         super().__init__()
 
@@ -50,62 +50,62 @@ class LungDataModule(pl.LightningDataModule):
             [torchvision.transforms.ToTensor(), ZNormalization, RescaleIntensity(0, 1)]
         )
 
-        if stage == "fit" or stage is None:
-            self.train_set = LungDataset(
-                root_dir=self.root_dir,
-                max_series_length=self.max_series_length,
-                split=self.split,
-                seed=self.seed,
-                transform=transforms,
-                train=True,
-                val=False,
-                test=False,
-            )
-
-        if stage == "validate" or stage is None:
-            self.val_set = LungDataset(
-                root_dir=self.root_dir,
-                max_series_length=self.max_series_length,
-                split=self.split,
-                seed=self.seed,
-                transform=transforms,
-                train=False,
-                val=True,
-                test=False,
-            )
-
-        if stage == "test" or stage is None:
-            self.test_set = LungDataset(
-                root_dir=self.root_dir,
-                max_series_length=self.max_series_length,
-                split=self.split,
-                seed=self.seed,
-                transform=transforms,
-                train=False,
-                val=False,
-                test=True,
-            )
-
-    def train_dataloader(self):
-        return DataLoader(
-            self.train_set,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers,
+        self.train_set = LungDataset(
+            root_dir=self.root_dir,
+            max_series_length=self.max_series_length,
+            split=self.split,
+            seed=self.seed,
+            transform=transforms,
+            train=True,
+            val=False,
+            test=False,
         )
 
-    def val_dataloader(self):
-        return DataLoader(
-            self.val_set,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers,
+        self.val_set = LungDataset(
+            root_dir=self.root_dir,
+            max_series_length=self.max_series_length,
+            split=self.split,
+            seed=self.seed,
+            transform=transforms,
+            train=False,
+            val=True,
+            test=False,
         )
 
-    def test_dataloader(self):
-        return DataLoader(
-            self.test_set,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers,
+        self.test_set = LungDataset(
+            root_dir=self.root_dir,
+            max_series_length=self.max_series_length,
+            split=self.split,
+            seed=self.seed,
+            transform=transforms,
+            train=False,
+            val=False,
+            test=True,
         )
+
+
+def train_dataloader(self):
+    return DataLoader(
+        self.train_set,
+        batch_size=self.batch_size,
+        pin_memory=self.pin_memory,
+        num_workers=self.num_workers,
+    )
+
+
+def val_dataloader(self):
+    return DataLoader(
+        self.val_set,
+        batch_size=self.batch_size,
+        pin_memory=self.pin_memory,
+        num_workers=self.num_workers,
+    )
+
+
+def test_dataloader(self):
+    return DataLoader(
+        self.test_set,
+        batch_size=self.batch_size,
+        pin_memory=self.pin_memory,
+        num_workers=self.num_workers,
+    )

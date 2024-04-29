@@ -55,7 +55,7 @@ class LungDataset(Dataset):
         assert os.path.exists(root_dir), f"{root_dir} does not exists"
         assert os.path.isdir(root_dir), f"{root_dir} is not a directory"
 
-        subject_paths = glob.glob(glob.escape(os.path.join(root_dir, "*")))
+        subject_paths = glob.glob(os.path.join(root_dir, "*"))
         self.subject_series = [
             glob.glob(os.path.join(p, "Series*/dicoms.mat")) for p in subject_paths
         ]
