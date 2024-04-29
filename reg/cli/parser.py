@@ -81,6 +81,7 @@ def create_parser() -> argparse.ArgumentParser:
         "--identity_loss",
         type=bool,
         default=False,
+        action="store_true",
         help="consider target image deformation",
     )
 
