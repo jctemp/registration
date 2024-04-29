@@ -11,20 +11,20 @@ from reg.data.dataset import LungDataset
 class LungDataModule(pl.LightningDataModule):
     """
     Data module for the lung dataset.
-    
+
     Args:
-        root_dirs: List of root directories of the dataset. Can contain wildcards.
+        root_dir: Root directory of the dataset. Can contain wildcards.
         max_series_length: Maximum number of images to load.
         split: Tuple of floats representing the train, validation and test split.
         seed: Seed for the random split.
         pin_memory: If True, pin memory for faster data transfer.
         num_workers: Number of workers for the data loader.
-        
+
     """
 
     def __init__(
         self,
-        root_dirs: List[str],
+        root_dir: str,
         max_series_length: int = None,
         split: Tuple[float, float, float] = (0.7, 0.1, 0.2),
         seed: int = 42,
@@ -33,7 +33,7 @@ class LungDataModule(pl.LightningDataModule):
     ):
         super().__init__()
 
-        self.root_dirs = root_dirs
+        self.root_dir = root_dir
         self.max_series_length = max_series_length
         self.split = split
         self.seed = seed
@@ -51,76 +51,64 @@ class LungDataModule(pl.LightningDataModule):
         )
 
         if stage == "fit" or stage is None:
-            self.train_set = ConcatDataset(
-                [
-                    LungDataset(
-                        root_dir=root_dir,
-                        max_series_length=self.max_series_length,
-                        split=self.split,
-                        seed=self.seed,
-                        transform=transforms,
-                        train=True,
-                        val=False,
-                        test=False,
-                    )
-                    for root_dir in self.root_dirs
-                ]
+            self.train_set = LungDataset(
+                root_dir=self.root_dir,
+                max_series_length=self.max_series_length,
+                split=self.split,
+                seed=self.seed,
+                transform=transforms,
+                train=True,
+                val=False,
+                test=False,
             )
 
         if stage == "validate" or stage is None:
-            self.val_set = ConcatDataset(
-                [
-                    LungDataset(
-                        root_dir=root_dir,
-                        max_series_length=self.max_series_length,
-                        split=self.split,
-                        seed=self.seed,
-                        transform=transforms,
-                        train=False,
-                        val=True,
-                        test=False,
-                    )
-                    for root_dir in self.root_dirs
-                ]
+            self.val_set = LungDataset(
+                root_dir=self.root_dir,
+                max_series_length=self.max_series_length,
+                split=self.split,
+                seed=self.seed,
+                transform=transforms,
+                train=False,
+                val=True,
+                test=False,
             )
 
         if stage == "test" or stage is None:
-            self.test_set = ConcatDataset(
-                [
-                    LungDataset(
-                        root_dir=root_dir,
-                        max_series_length=self.max_series_length,
-                        split=self.split,
-                        seed=self.seed,
-                        transform=transforms,
-                        train=False,
-                        val=False,
-                        test=True,
-                    )
-                    for root_dir in self.root_dirs
-                ]
+            self.test_set = LungDataset(
+                root_dir=self.root_dir,
+                max_series_length=self.max_series_length,
+                split=self.split,
+                seed=self.seed,
+                transform=transforms,
+                train=False,
+                val=False,
+                test=True,
             )
 
-    def train_dataloader(self):
-        return DataLoader(
-            self.train_set,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers,
-        )
 
-    def val_dataloader(self):
-        return DataLoader(
-            self.val_set,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers,
-        )
+def train_dataloader(self):
+    return DataLoader(
+        self.train_set,
+        batch_size=self.batch_size,
+        pin_memory=self.pin_memory,
+        num_workers=self.num_workers,
+    )
 
-    def test_dataloader(self):
-        return DataLoader(
-            self.test_set,
-            batch_size=self.batch_size,
-            pin_memory=self.pin_memory,
-            num_workers=self.num_workers,
-        )
+
+def val_dataloader(self):
+    return DataLoader(
+        self.val_set,
+        batch_size=self.batch_size,
+        pin_memory=self.pin_memory,
+        num_workers=self.num_workers,
+    )
+
+
+def test_dataloader(self):
+    return DataLoader(
+        self.test_set,
+        batch_size=self.batch_size,
+        pin_memory=self.pin_memory,
+        num_workers=self.num_workers,
+    )
