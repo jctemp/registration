@@ -82,7 +82,7 @@ class LungDataset(Dataset):
 
             if train:
                 self.subject_series = train_set
-            elif val and val_set:
+            elif val:
                 self.subject_series = val_set
             elif test:
                 self.subject_series = test_set
