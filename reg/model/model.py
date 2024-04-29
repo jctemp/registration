@@ -1,5 +1,5 @@
 from enum import Enum
-from typing import Any, Tuple, List
+from typing import Any, Tuple, List, Mapping
 
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
@@ -39,7 +39,7 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         for loss_fn, weight in self.criteria_warped:
             loss += torch.mean(
-                torch.stack([loss_fn(w, fixed) for w in warped.permute(-1, 0, 1, 2)])
+                torch.stack([loss_fn(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)])
             )
             loss *= weight
         return loss
@@ -48,7 +48,7 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         for loss_fn, weight in self.criteria_flow:
             loss += torch.mean(
-                torch.stack([loss_fn(f) for f in flow.permute(-1, 0, 1, 2)])
+                torch.stack([loss_fn(f) for f in flow.permute(-1, 0, 1, 2, 3)])
             )
             loss *= weight
         return loss
@@ -108,8 +108,9 @@ class TransMorphModule(pl.LightningModule):
             in_series = torch.cat([fixed, series[..., idx_start:idx_end]], dim=-1)
             warped, flow = self.net(in_series)
 
-            warped_series[..., idx_start + shift : idx_end] = warped[..., shift:]
-            flow_series[..., idx_start + shift : idx_end] = flow[..., shift:]
+            # Note: we need to shift by one to exclude fixed
+            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1:]
+            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1:]
             del warped, flow, in_series
 
         # Clean all de-referenced data
@@ -122,12 +123,11 @@ class TransMorphModule(pl.LightningModule):
         raise NotImplementedError()
 
     def forward(self, series: torch.Tensor):
-        # Check image width and height
+        # Check image width and height TODO: help
         assert (
-            torch.prod(series.shape[:-1])
-            == torch.prod(self.net.transformer.img_size.shape[:-1]),
+            series.shape[:-1] == self.net.transformer.img_size[:-1],
             "The tensor x does not fulfill TransMorph input requirements. "
-            f"Expected {self.net.transformer.img_size.shape[:-1]}, Got {series.shape[:-1]}. "
+            f"Expected {self.net.transformer.img_size[:-1]}, Got {series.shape[:-1]}. "
             f"Note: last dimension was removed as it is not relevant for the input.",
         )
 
@@ -137,7 +137,7 @@ class TransMorphModule(pl.LightningModule):
             return self._group_registration(series)
         raise ValueError(f"Invalid strategy {self.registration_strategy}")
 
-    def training_step(self, batch, **kwargs: Any) -> None:
+    def training_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
         warped, flow, fixed = self(batch)
 
         loss = 0
@@ -148,20 +148,24 @@ class TransMorphModule(pl.LightningModule):
         if self.identity_loss:
             max_depth_transmorph: int = self.net.transformer.img_size[-1] - 1
             in_series = torch.repeat_interleave(fixed, max_depth_transmorph, dim=-1)
-            warped, flow, _ = self(in_series, fixed)
+            warped, flow, _ = self(in_series)
 
             loss += self._compute_warped_loss(warped, fixed)
             del warped, flow, in_series
 
+        result = {"train_loss": loss}
+
         self.log_dict(
-            {"train_loss": loss},
+            result,
             on_step=True,
             on_epoch=True,
             logger=True,
             sync_dist=True,
         )
 
-    def validation_step(self, batch, **kwargs: Any) -> None:
+        return result
+
+    def validation_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
         warped, flow, fixed = self(batch)
 
         loss = 0
@@ -169,11 +173,15 @@ class TransMorphModule(pl.LightningModule):
         loss += self._compute_flow_loss(flow)
         del warped, flow
 
+        result = {"val_loss": loss}
+
         self.log_dict(
-            {"val_loss": loss}, on_step=True, on_epoch=True, logger=True, sync_dist=True
+            result, on_step=True, on_epoch=True, logger=True, sync_dist=True
         )
 
-    def test_step(self, batch, **kwargs: Any) -> None:
+        return result
+
+    def test_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
         warped, flow, fixed = self(batch)
 
         tar = fixed.detach().cpu().numpy()[0, :, :, :]
@@ -189,13 +197,17 @@ class TransMorphModule(pl.LightningModule):
         loss += self._compute_flow_loss(flow)
         del warped, flow, tar, flows
 
+        result = {"test_loss": loss, "mean_neg_det": neg_det}
+
         self.log_dict(
-            {"test_loss": loss, "mean_neg_det": neg_det},
+            result,
             on_step=True,
             on_epoch=True,
             logger=True,
             sync_dist=True,
         )
+
+        return result
 
     def predict_step(self, batch, **kwargs: Any) -> tuple[torch.Tensor, torch.Tensor]:
         warped, flow, _ = self(batch)
