@@ -137,7 +137,7 @@ class TransMorphModule(pl.LightningModule):
             return self._group_registration(series)
         raise ValueError(f"Invalid strategy {self.registration_strategy}")
 
-    def training_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
+    def training_step(self, batch, **kwargs: Any) -> float:
         warped, flow, fixed = self(batch)
 
         loss = 0
@@ -153,19 +153,17 @@ class TransMorphModule(pl.LightningModule):
             loss += self._compute_warped_loss(warped, fixed)
             del warped, flow, in_series
 
-        result = {"train_loss": loss}
-
         self.log_dict(
-            result,
+            {"train_loss": loss},
             on_step=True,
             on_epoch=True,
             logger=True,
             sync_dist=True,
         )
 
-        return result
+        return loss
 
-    def validation_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
+    def validation_step(self, batch, **kwargs: Any) -> float:
         warped, flow, fixed = self(batch)
 
         loss = 0
@@ -173,13 +171,11 @@ class TransMorphModule(pl.LightningModule):
         loss += self._compute_flow_loss(flow)
         del warped, flow
 
-        result = {"val_loss": loss}
-
         self.log_dict(
-            result, on_step=True, on_epoch=True, logger=True, sync_dist=True
+            {"val_loss": loss}, on_step=True, on_epoch=True, logger=True, sync_dist=True
         )
 
-        return result
+        return loss
 
     def test_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
         warped, flow, fixed = self(batch)
