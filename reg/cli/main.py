@@ -49,7 +49,6 @@ def main():
         print("")
         print("=" * 120)
 
-        batch_size = 1
         loggers = []
         run = (
             f"network_{args.network}.criteria-warped_{args.criteria_warped}.criteria-flow_{args.criteria_flow}."
@@ -94,7 +93,7 @@ def main():
         n_available_cores = 1 if n_available_cores == 0 else n_available_cores
 
         datamodule = LungDataModule(
-            root_dirs=["/media/agjvc_rad3/_TESTKOLLEKTIV/Daten/Daten"],
+            root_dir="/media/agjvc_rad3/_TESTKOLLEKTIV/Daten/Daten",
             max_series_length=128,
             split=(0.7, 0.1, 0.2),
             seed=42,
