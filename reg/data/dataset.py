@@ -3,6 +3,7 @@ import glob
 from typing import List, Tuple, Any
 
 from torch.utils.data import Dataset, random_split
+import numpy as np
 import torch
 
 from reg.data.utils import read_mat_data
@@ -102,7 +103,7 @@ class LungDataset(Dataset):
         Returns the series at the given index.
         """
         data = read_mat_data(self.subject_series[idx], end=self.max_series_length)
-        data = torch.from_numpy(data)
+        data = torch.from_numpy(data.astype(np.float32))
         if self.transform:
             data = self.transform(data)
         return data
