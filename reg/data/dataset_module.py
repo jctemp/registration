@@ -47,7 +47,7 @@ class LungDataModule(pl.LightningDataModule):
 
     def setup(self, stage=None):
         transforms = torchvision.transforms.Compose(
-            [ZNormalization, RescaleIntensity(0, 1)]
+            [ZNormalization(), RescaleIntensity(0, 1)]
         )
 
         self.train_set = LungDataset(
