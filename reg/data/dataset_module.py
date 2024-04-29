@@ -23,13 +23,13 @@ class LungDataModule(pl.LightningDataModule):
     """
 
     def __init__(
-            self,
-            root_dir: str,
-            max_series_length: int = None,
-            split: Tuple[float, float, float] = (0.7, 0.1, 0.2),
-            seed: int = 42,
-            pin_memory: bool | Tuple[bool, bool, bool] = True,
-            num_workers: int = 1,
+        self,
+        root_dir: str,
+        max_series_length: int = None,
+        split: Tuple[float, float, float] = (0.7, 0.1, 0.2),
+        seed: int = 42,
+        pin_memory: bool | Tuple[bool, bool, bool] = True,
+        num_workers: int = 1,
     ):
         super().__init__()
 
@@ -83,29 +83,26 @@ class LungDataModule(pl.LightningDataModule):
             test=True,
         )
 
+    def train_dataloader(self):
+        return DataLoader(
+            self.train_set,
+            batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+        )
 
-def train_dataloader(self):
-    return DataLoader(
-        self.train_set,
-        batch_size=self.batch_size,
-        pin_memory=self.pin_memory,
-        num_workers=self.num_workers,
-    )
+    def val_dataloader(self):
+        return DataLoader(
+            self.val_set,
+            batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+        )
 
-
-def val_dataloader(self):
-    return DataLoader(
-        self.val_set,
-        batch_size=self.batch_size,
-        pin_memory=self.pin_memory,
-        num_workers=self.num_workers,
-    )
-
-
-def test_dataloader(self):
-    return DataLoader(
-        self.test_set,
-        batch_size=self.batch_size,
-        pin_memory=self.pin_memory,
-        num_workers=self.num_workers,
-    )
+    def test_dataloader(self):
+        return DataLoader(
+            self.test_set,
+            batch_size=self.batch_size,
+            pin_memory=self.pin_memory,
+            num_workers=self.num_workers,
+        )
