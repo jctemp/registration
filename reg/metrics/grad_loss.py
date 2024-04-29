@@ -26,9 +26,9 @@ import torch
 # Date: 2024-04-08
 
 
-class Grad2d(torch.nn.Module):
+class Grad2dLoss(torch.nn.Module):
     def __init__(self, penalty="l1"):
-        super(Grad2d, self).__init__()
+        super(Grad2dLoss, self).__init__()
         self.penalty = penalty
 
     def forward(self, flow):
@@ -45,9 +45,9 @@ class Grad2d(torch.nn.Module):
         return grad
 
 
-class Grad3d(torch.nn.Module):
+class Grad3dLoss(torch.nn.Module):
     def __init__(self, penalty="l1"):
-        super(Grad3d, self).__init__()
+        super(Grad3dLoss, self).__init__()
         self.penalty = penalty
 
     def forward(self, flow):

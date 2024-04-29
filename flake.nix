@@ -75,6 +75,7 @@
           pythonPackages.seaborn
           pythonPackages.pydicom
           pythonPackages.pylint
+          pythonPackages.rich
 
           # ML
           pythonCudaPackages.torch-bin

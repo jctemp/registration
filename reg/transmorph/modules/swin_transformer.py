@@ -735,8 +735,8 @@ class SwinTransformer(nn.Module):
             ape (bool): If True, add absolute position embedding to the patch embedding. Default: False
             patch_norm (bool): If True, add normalization after patch embedding. Default: True
             use_checkpoint (bool): Whether to use checkpointing to save memory. Default: False
-        """    
-    
+        """
+
         super().__init__()
         self.img_size = img_size
         self.num_layers = len(depths)
@@ -841,7 +841,7 @@ class SwinTransformer(nn.Module):
     def init_weights(self, pretrained=None):
         """
         Initialize the weights in backbone.
-        
+
         Args:
             pretrained (str, optional): Path to pre-trained weights.
                 Defaults to None.
