@@ -89,8 +89,7 @@ class LungDataset(Dataset):
             else:
                 raise ValueError("split failed: insufficient")
 
-        else:
-            self.subject_series = flatten(self.subject_series)
+        self.subject_series = flatten(self.subject_series)
 
     def __len__(self):
         """
