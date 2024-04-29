@@ -102,6 +102,7 @@ class LungDataset(Dataset):
         Returns the series at the given index.
         """
         data = read_mat_data(self.subject_series[idx], end=self.max_series_length)
+        data = torch.from_numpy(data)
         if self.transform:
             data = self.transform(data)
         return data
