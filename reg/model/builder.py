@@ -96,6 +96,10 @@ class TransMorphModuleBuilder:
     def set_network(self, config_identifier: str) -> TransMorphModuleBuilder:
         config = CONFIG_TM[config_identifier]
         descriptors = config_identifier.split("-")
+
+        config = CONFIG_TM[config_identifier]
+        config.img_size = (*config.img_size[:-1], self.config["registration_depth"])
+
         net = (
             TransMorphBayes(config)
             if len(descriptors) > 1 and descriptors[1] == "bayes"
@@ -183,6 +187,7 @@ class TransMorphModuleBuilder:
         )
 
         self.model.net = net
+        self.hyperparams["net"] = net
         self.hyperparams["registration_depth"] = registration_depth
         self.config["registration_depth"] = registration_depth
 
