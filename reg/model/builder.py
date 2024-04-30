@@ -95,10 +95,8 @@ class TransMorphModuleBuilder:
 
     def set_network(self, config_identifier: str) -> TransMorphModuleBuilder:
         config = CONFIG_TM[config_identifier]
+        config.img_size = (*config.img_size[:-1], self.hyperparams["registration_depth"])
         descriptors = config_identifier.split("-")
-
-        config = CONFIG_TM[config_identifier]
-        config.img_size = (*config.img_size[:-1], self.config["registration_depth"])
 
         net = (
             TransMorphBayes(config)
