@@ -78,17 +78,16 @@ class TransMorphModuleBuilder:
             )
         else:
             self.model.net = self.hyperparams["net"]
-            self.model.criteria_warped = (self.hyperparams["criteria_warped"],)
-            self.model.criteria_flow = (self.hyperparams["criteria_flow"],)
-            self.model.registration_target = (self.hyperparams["registration_target"],)
-            self.model.registration_strategy = (
-                self.hyperparams["registration_strategy"],
-            )
-            self.model.registration_depth = (self.hyperparams["registration_depth"],)
-            self.model.registration_stride = (self.hyperparams["registration_stride"],)
-            self.model.identity_loss = (self.hyperparams["identity_loss"],)
-            self.model.optimizer = (self.hyperparams["optimizer"],)
-            self.model.learning_rate = (self.hyperparams["learning_rate"],)
+            self.model.criteria_warped = self.hyperparams["criteria_warped"]
+            self.model.criteria_flow = self.hyperparams["criteria_flow"]
+            self.model.registration_target = self.hyperparams["registration_target"]
+            self.model.registration_strategy = self.hyperparams["registration_strategy"]
+
+            self.model.registration_depth = self.hyperparams["registration_depth"]
+            self.model.registration_stride = self.hyperparams["registration_stride"]
+            self.model.identity_loss = self.hyperparams["identity_loss"]
+            self.model.optimizer = self.hyperparams["optimizer"]
+            self.model.learning_rate = self.hyperparams["learning_rate"]
             self.model.config = self.config
 
         return self.model, self.config

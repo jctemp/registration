@@ -50,7 +50,7 @@ class TransMorphModule(pl.LightningModule):
         self.learning_rate = learning_rate
         self.config = config
 
-        self.save_hyperparameters()
+        self.save_hyperparameters(ignore=["net"])
 
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0
