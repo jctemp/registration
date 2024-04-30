@@ -61,11 +61,11 @@ def main():
         run_path = f"model_weights_v3/{run}"
 
         if args.log:
-            wandb_logger = pll.WandbLogger(
-                save_dir="logs", project="lung-registration", config=config
-            )
-            csv_logger = pll.CSVLogger(save_dir="logs", name=f"lung-registration_{run}")
-            loggers = [wandb_logger, csv_logger]
+            loggers = [
+                pll.WandbLogger(
+                    save_dir="logs", project="lung-registration", config=config
+                )
+            ]
 
         checkpoint_callback = plc.ModelCheckpoint(
             monitor="val_loss",
