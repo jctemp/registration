@@ -95,7 +95,10 @@ class TransMorphModuleBuilder:
 
     def set_network(self, config_identifier: str) -> TransMorphModuleBuilder:
         config = CONFIG_TM[config_identifier]
-        config.img_size = (*config.img_size[:-1], self.hyperparams["registration_depth"])
+        config.img_size = (
+            *config.img_size[:-1],
+            self.hyperparams["registration_depth"],
+        )
 
         descriptors = config_identifier.split("-")
         net = (
@@ -122,7 +125,9 @@ class TransMorphModuleBuilder:
             for i in range(0, len(criteria), 2)
         ]
 
-        self.hyperparams["criteria_warped"] = [(loss_fn, w) for (_, loss_fn, w) in criteria_warped]
+        self.hyperparams["criteria_warped"] = [
+            (loss_fn, w) for (_, loss_fn, w) in criteria_warped
+        ]
         self.config["criteria_warped"] = [
             (name, w) for (name, loss_fn, w) in criteria_warped
         ]
@@ -142,7 +147,9 @@ class TransMorphModuleBuilder:
             for i in range(0, len(criteria), 2)
         ]
 
-        self.hyperparams["criteria_flow"] = [(loss_fn, w) for (_, loss_fn, w) in criteria_flow]
+        self.hyperparams["criteria_flow"] = [
+            (loss_fn, w) for (_, loss_fn, w) in criteria_flow
+        ]
         self.config["criteria_flow"] = [
             (name, w) for (name, loss_fn, w) in criteria_flow
         ]
@@ -172,7 +179,9 @@ class TransMorphModuleBuilder:
     def set_registration_depth(
         self, registration_depth: int
     ) -> TransMorphModuleBuilder:
-        config_identifier = self.config["network"] if "network" in self.config else "transmorph"
+        config_identifier = (
+            self.config["network"] if "network" in self.config else "transmorph"
+        )
 
         config = CONFIG_TM[config_identifier]
         config.img_size = (*config.img_size[:-1], registration_depth)
