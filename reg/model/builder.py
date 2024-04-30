@@ -184,7 +184,6 @@ class TransMorphModuleBuilder:
             else TransMorph(config)
         )
 
-        self.model.net = net
         self.hyperparams["net"] = net
         self.hyperparams["registration_depth"] = registration_depth
         self.config["registration_depth"] = registration_depth
