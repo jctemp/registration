@@ -24,16 +24,16 @@ class RegistrationStrategy(Enum):
 class TransMorphModule(pl.LightningModule):
     def __init__(
         self,
-        net: TransMorph | TransMorphBayes | None = None,
-        criteria_warped: List[Tuple[torch.nn.Module, float]] = (),
-        criteria_flow: List[Tuple[torch.nn.Module, float]] = (),
-        registration_target: RegistrationTarget = RegistrationTarget.LAST,
-        registration_strategy: RegistrationStrategy = RegistrationStrategy.SOREG,
-        registration_depth: int = 32,
-        registration_stride: int = 1,
-        identity_loss: bool = False,
-        optimizer: torch.optim = torch.optim.Adam,
-        learning_rate: float = 1e-4,
+        net: TransMorph | TransMorphBayes,
+        criteria_warped: List[Tuple[torch.nn.Module, float]],
+        criteria_flow: List[Tuple[torch.nn.Module, float]],
+        registration_target: RegistrationTarget,
+        registration_strategy: RegistrationStrategy,
+        registration_depth: int,
+        registration_stride: int,
+        identity_loss: bool,
+        optimizer: torch.optim,
+        learning_rate: float,
     ):
         super().__init__()
 

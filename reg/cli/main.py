@@ -37,6 +37,7 @@ def main():
                 .set_registration_strategy(args.registration_strategy)
                 .set_registration_target(args.registration_target)
                 .set_registration_depth(args.registration_depth)
+                .set_registration_stride(args.registration_stride)
                 .set_identity_loss(args.identity_loss)
                 .set_optimizer(args.optimizer)
                 .set_learning_rate(args.learning_rate)

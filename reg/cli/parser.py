@@ -78,6 +78,12 @@ def create_parser() -> argparse.ArgumentParser:
         choices=range(32, 256, 32),
     )
     parser_train.add_argument(
+        "--registration_stride",
+        type=int,
+        default=1,
+        help="defines how to subsample temporal dimension",
+    )
+    parser_train.add_argument(
         "--identity_loss",
         action="store_true",
         help="consider target image deformation",

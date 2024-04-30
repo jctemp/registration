@@ -24,7 +24,18 @@ class TransMorphModuleBuilder:
     def __init__(self):
         self.model = None
         self.config = {}
-        self.hyperparams = {}
+        self.hyperparams = {
+            "net": TransMorph(CONFIG_TM["transmorph"]),
+            "criteria_warped": [(CONFIGS_WAPRED_LOSS["gmi"], 1.0)],
+            "criteria_flow": [(CONFIGS_FLOW_LOSS["gl2d"], 1.0)],
+            "registration_target": RegistrationTarget.LAST,
+            "registration_strategy": RegistrationStrategy.SOREG,
+            "registration_depth": 32,
+            "registration_stride": 1,
+            "identity_loss": False,
+            "optimizer": torch.optim.Adam,
+            "learning_rate": 1e-4,
+        }
 
     @classmethod
     def from_ckpt(cls, ckpt: Any, strict: bool = False) -> TransMorphModuleBuilder:
@@ -39,21 +50,17 @@ class TransMorphModuleBuilder:
 
         builder.model = TransMorphModule.load_from_checkpoint(str(ckpt), strict=strict)
         builder.hyperparams["net"] = builder.model.net
-        builder.hyperparams["criteria_warped"] = (builder.model.criteria_warped,)
-        builder.hyperparams["criteria_flow"] = (builder.model.criteria_flow,)
-        builder.hyperparams["registration_target"] = (
-            builder.model.registration_target,
-        )
-        builder.hyperparams["registration_strategy"] = (
-            builder.model.registration_strategy,
-        )
-        builder.hyperparams["registration_depth"] = (builder.model.registration_depth,)
-        builder.hyperparams["registration_stride"] = (
-            builder.model.registration_stride,
-        )
-        builder.hyperparams["identity_loss"] = (builder.model.identity_loss,)
-        builder.hyperparams["optimizer"] = (builder.model.optimizer,)
-        builder.hyperparams["learning_rate"] = (builder.model.learning_rate,)
+        builder.hyperparams["criteria_warped"] = builder.model.criteria_warped
+        builder.hyperparams["criteria_flow"] = builder.model.criteria_flow
+        builder.hyperparams["registration_target"] = builder.model.registration_target
+        builder.hyperparams[
+            "registration_strategy"
+        ] = builder.model.registration_strategy
+        builder.hyperparams["registration_depth"] = builder.model.registration_depth
+        builder.hyperparams["registration_stride"] = builder.model.registration_stride
+        builder.hyperparams["identity_loss"] = builder.model.identity_loss
+        builder.hyperparams["optimizer"] = builder.model.optimizer
+        builder.hyperparams["learning_rate"] = builder.model.learning_rate
 
         return builder
 
