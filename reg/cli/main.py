@@ -60,8 +60,7 @@ def main():
         )
         run_path = f"model_weights_v3/{run}"
 
-        if not os.path.exists(run_path):
-            os.mkdir(run_path)
+        os.makedirs(run_path, exist_ok=True)
         with open(f"{run_path}/config.json", "w") as data:
             json.dump(config, data)
 
