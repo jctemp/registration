@@ -22,24 +22,41 @@ class RegistrationStrategy(Enum):
 
 
 class TransMorphModule(pl.LightningModule):
-    def __init__(self):
+    def __init__(
+        self,
+        net: TransMorph | TransMorphBayes | None = None,
+        criteria_warped: List[Tuple[torch.nn.Module, float]] = (),
+        criteria_flow: List[Tuple[torch.nn.Module, float]] = (),
+        registration_target: RegistrationTarget = RegistrationTarget.LAST,
+        registration_strategy: RegistrationStrategy = RegistrationStrategy.SOREG,
+        registration_depth: int = 32,
+        registration_stride: int = 1,
+        identity_loss: bool = False,
+        optimizer: torch.optim = torch.optim.Adam,
+        learning_rate: float = 1e-4,
+    ):
         super().__init__()
-        self.net: TransMorph | TransMorphBayes | None = None
-        self.criteria_warped: List[Tuple[torch.nn.Module, float]] = []
-        self.criteria_flow: List[Tuple[torch.nn.Module, float]] = []
-        self.optimizer: torch.optim = torch.optim.Adam
-        self.learning_rate: float = 1e-4
-        self.registration_target: RegistrationTarget = RegistrationTarget.LAST
-        self.registration_strategy: RegistrationStrategy = RegistrationStrategy.SOREG
-        self.registration_depth: int = 32
-        self.identity_loss: bool = False
-        self.config = {}
+
+        self.net = net
+        self.criteria_warped = criteria_warped
+        self.criteria_flow = criteria_flow
+        self.registration_target = registration_target
+        self.registration_strategy = registration_strategy
+        self.registration_depth = registration_depth
+        self.registration_stride = registration_stride
+        self.identity_loss = identity_loss
+        self.optimizer = optimizer
+        self.learning_rate = learning_rate
+
+        self.save_hyperparameters()
 
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0
         for loss_fn, weight in self.criteria_warped:
             loss += torch.mean(
-                torch.stack([loss_fn(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)])
+                torch.stack(
+                    [loss_fn(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
+                )
             )
             loss *= weight
         return loss
@@ -109,8 +126,8 @@ class TransMorphModule(pl.LightningModule):
             warped, flow = self.net(in_series)
 
             # Note: we need to shift by one to exclude fixed
-            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1:]
-            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1:]
+            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1 :]
+            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1 :]
             del warped, flow, in_series
 
         # Clean all de-referenced data
