@@ -44,10 +44,6 @@ class TransMorphModuleBuilder:
 
         builder = cls()
 
-        config_path = Path(ckpt).parent / "config.json"
-        with open(config_path, "r") as data:
-            builder.config = json.load(data)
-
         builder.model = TransMorphModule.load_from_checkpoint(str(ckpt), strict=strict)
         builder.hyperparams["net"] = builder.model.net
         builder.hyperparams["criteria_warped"] = builder.model.criteria_warped
@@ -61,6 +57,7 @@ class TransMorphModuleBuilder:
         builder.hyperparams["identity_loss"] = builder.model.identity_loss
         builder.hyperparams["optimizer"] = builder.model.optimizer
         builder.hyperparams["learning_rate"] = builder.model.learning_rate
+        builder.config = builder.model.config
 
         return builder
 
@@ -77,6 +74,7 @@ class TransMorphModuleBuilder:
                 identity_loss=self.hyperparams["identity_loss"],
                 optimizer=self.hyperparams["optimizer"],
                 learning_rate=self.hyperparams["learning_rate"],
+                config=self.config,
             )
         else:
             self.model.net = self.hyperparams["net"]
@@ -91,6 +89,7 @@ class TransMorphModuleBuilder:
             self.model.identity_loss = (self.hyperparams["identity_loss"],)
             self.model.optimizer = (self.hyperparams["optimizer"],)
             self.model.learning_rate = (self.hyperparams["learning_rate"],)
+            self.model.config = self.config
 
         return self.model, self.config
 
@@ -121,7 +120,7 @@ class TransMorphModuleBuilder:
             for i in range(0, len(criteria), 2)
         ]
 
-        self.hyperparams["criteria_warped"] = criteria_warped
+        self.hyperparams["criteria_warped"] = [(loss_fn, w) for (_, loss_fn, w) in criteria_warped]
         self.config["criteria_warped"] = [
             (name, w) for (name, loss_fn, w) in criteria_warped
         ]
@@ -141,7 +140,7 @@ class TransMorphModuleBuilder:
             for i in range(0, len(criteria), 2)
         ]
 
-        self.hyperparams["criteria_flow"] = criteria_flow
+        self.hyperparams["criteria_flow"] = [(loss_fn, w) for (_, loss_fn, w) in criteria_flow]
         self.config["criteria_flow"] = [
             (name, w) for (name, loss_fn, w) in criteria_flow
         ]

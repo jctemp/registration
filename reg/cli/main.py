@@ -60,10 +60,6 @@ def main():
         )
         run_path = f"model_weights_v3/{run}"
 
-        os.makedirs(run_path, exist_ok=True)
-        with open(f"{run_path}/config.json", "w") as data:
-            json.dump(config, data)
-
         if args.log:
             wandb_logger = pll.WandbLogger(
                 save_dir="logs", project="lung-registration", config=config

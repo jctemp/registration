@@ -34,6 +34,7 @@ class TransMorphModule(pl.LightningModule):
         identity_loss: bool,
         optimizer: torch.optim,
         learning_rate: float,
+        config: dict,
     ):
         super().__init__()
 
@@ -47,6 +48,7 @@ class TransMorphModule(pl.LightningModule):
         self.identity_loss = identity_loss
         self.optimizer = optimizer
         self.learning_rate = learning_rate
+        self.config = config
 
         self.save_hyperparameters()
 
