@@ -110,10 +110,10 @@ bash_script += (f"python -m reg --log "
                 f"--registration_strategy {args.registration_strategy} "
                 f"--registration_target {args.registration_target} "
                 f"--registration_depth {args.registration_depth} "
-                f"--identity_loss "
                 f"--optimizer {args.optimizer} "
                 f"--learning_rate {args.learning_rate} "
                 f"--epochs {args.epochs}")
+# f"--identity_loss "
 
 # Execute bash script
 with open("batch.sh", "w") as f:
