@@ -1,14 +1,15 @@
 from enum import Enum
 from typing import Any, Tuple, List, Mapping
+import gc
+
+import monai.metrics
+import numpy as np
+import pytorch_lightning as pl
+import torch
 
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
 from reg.metrics import jacobian_det
-
-import gc
-import torch
-import numpy as np
-import pytorch_lightning as pl
 
 
 class RegistrationTarget(Enum):
@@ -191,20 +192,55 @@ class TransMorphModule(pl.LightningModule):
     def test_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
         warped, flow, fixed = self(batch)
 
-        tar = fixed.detach().cpu().numpy()[0, :, :, :]
-        flows = flow.detach().cpu().numpy()[0, :, :, :, :]
-        jac_det_list = [jacobian_det(flows[:, :, :, i]) for i in range(flows.shape[-1])]
-        neg_det_list = [
-            np.sum(jac_det <= 0) / np.prod(tar.shape) for jac_det in jac_det_list
+        fixed_np = fixed.detach().cpu().numpy()[0, :, :, :]
+        flow_np = flow.detach().cpu().numpy()[0, :, :, :, :]
+        jac_det_list = [jacobian_det(flow_np[:, :, :, i]) for i in range(flow_np.shape[-1])]
+        perc_neg_jac_det_list = [
+            np.sum(jac_det <= 0) / np.prod(fixed_np.shape) for jac_det in jac_det_list
         ]
-        neg_det = np.mean(neg_det_list)
+        perc_neg_jac_det_mean = np.mean(perc_neg_jac_det_list)
+        perc_neg_jac_det_var = np.var(perc_neg_jac_det_list)
+        perc_neg_jac_det_min = np.min(perc_neg_jac_det_list)
+        perc_neg_jac_det_max = np.max(perc_neg_jac_det_list)
+
+        mse = torch.nn.MSELoss()
+        mse_list = torch.stack(
+            [mse(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
+        )
+        mse_mean = torch.mean(mse_list)
+        mse_var = torch.var(mse_list)
+        mse_min = torch.min(mse_list)
+        mse_max = torch.max(mse_list)
+
+        ssim = monai.metrics.SSIMMetric(2)
+        ssim_list = torch.stack(
+            [ssim(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
+        )
+        ssim_mean = torch.mean(ssim_list)
+        ssim_var = torch.var(ssim_list)
+        ssim_min = torch.min(ssim_list)
+        ssim_max = torch.max(ssim_list)
 
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
-        del warped, flow, tar, flows
+        del warped, flow, fixed_np, flow_np
 
-        result = {"test_loss": loss, "mean_neg_det": neg_det}
+        result = {
+            "test_loss": loss,
+            "perc_neg_jac_det_mean": perc_neg_jac_det_mean,
+            "perc_neg_jac_det_var": perc_neg_jac_det_var,
+            "perc_neg_jac_det_min": perc_neg_jac_det_min,
+            "perc_neg_jac_det_max": perc_neg_jac_det_max,
+            "mse_mean": mse_mean,
+            "mse_var": mse_var,
+            "mse_min": mse_min,
+            "mse_max": mse_max,
+            "ssim_mean": ssim_mean,
+            "ssim_var": ssim_var,
+            "ssim_min": ssim_min,
+            "ssim_max": ssim_max,
+        }
 
         self.log_dict(
             result,
