@@ -104,7 +104,7 @@ cd /hpc/scratch/project/jvc-lab/stud/registration
 source ./.venv/bin/activate
 """
 
-bash_script += (f"python -m reg"
+bash_script += (f"python -m reg "
                 f"train {args.network} "
                 f"--criteria_warped {args.criteria_warped} "
                 f"--criteria_flow {args.criteria_flow} "
