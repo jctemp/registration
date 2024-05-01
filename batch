@@ -87,8 +87,8 @@ run = (
 bash_script = f"""#!/bin/bash
 #
 #SBATCH --job-name=registration_job_gpu
-#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/log/{run}_out.txt
-#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/log/{run}_err.txt
+#SBATCH --output=/hpc/scratch/project/jvc-lab/stud/registration/logs/batch/{run}_out.txt
+#SBATCH --error=/hpc/scratch/project/jvc-lab/stud/registration/logs/batch/{run}_err.txt
 #SBATCH --time=7-00:00:00
 #
 #SBATCH --cpus-per-task={args.cpu}
