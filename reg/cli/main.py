@@ -4,7 +4,6 @@ import pytorch_lightning as pl
 import pytorch_lightning.callbacks as plc
 import pytorch_lightning.loggers as pll
 import torch
-import json
 
 from reg.cli.parser import create_parser
 from reg.data import LungDataModule
@@ -73,12 +72,10 @@ def main():
             filename="{val_loss:.8f}&{epoch}",
             save_top_k=5,
         )
-        progress_bar_callback = plc.RichProgressBar()
         early_stopping_callback = plc.EarlyStopping("val_loss", patience=5)
 
         callbacks = [
             checkpoint_callback,
-            progress_bar_callback,
             early_stopping_callback,
         ]
 
