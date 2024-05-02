@@ -299,7 +299,7 @@ class WindowAttention(nn.Module):
         coords_w = torch.arange(self.window_size[1])
         coords_t = torch.arange(self.window_size[2])
         coords = torch.stack(
-            torch.meshgrid([coords_h, coords_w, coords_t])
+            torch.meshgrid([coords_h, coords_w, coords_t], indexing="ij")
         )  # 3, Wh, Ww, Wt
         coords_flatten = torch.flatten(coords, 1)  # 3, Wh*Ww*Wt
         self.rpe = rpe
