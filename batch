@@ -79,7 +79,7 @@ run = (
     f"network_{args.network}.criteria-warped_{args.criteria_warped}.criteria-flow_{args.criteria_flow}."
     f"reg-strategy_{args.registration_strategy}.reg-target_{args.registration_target}."
     f"reg-depth_{args.registration_depth}.ident-loss_{args.identity_loss}.optimizer_{args.optimizer}."
-    f"learning-rate_{args.learning_rate}"
+    f"learning-rate_{args.learning_rate:.0E}"
 )
 
 # Build bash script
@@ -112,8 +112,10 @@ bash_script += (f"python -m reg --log "
                 f"--registration_depth {args.registration_depth} "
                 f"--optimizer {args.optimizer} "
                 f"--learning_rate {args.learning_rate} "
-                f"--epochs {args.epochs}")
-# f"--identity_loss "
+                f"--epochs {args.epochs} ")
+
+if args.identity_loss:
+    bash_script += f"--identity_loss "
 
 # Execute bash script
 with open("batch.sh", "w") as f:
