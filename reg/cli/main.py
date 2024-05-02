@@ -1,4 +1,5 @@
 import os
+import logging
 
 import pytorch_lightning as pl
 import pytorch_lightning.callbacks as plc
@@ -9,13 +10,18 @@ from reg.cli.parser import create_parser
 from reg.data import LungDataModule
 from reg.model import TransMorphModuleBuilder
 
+logger = logging.getLogger(__name__)
+
 
 def main():
     """
     Main function for the CLI.
     """
     if not torch.cuda.is_available():
-        raise RuntimeError("CUDA is not available.")
+        logger.error("Require CUDA to train model")
+        raise RuntimeError("CUDA is not available")
+
+    logger.info("Prepare training")
 
     parser = create_parser()
     args = parser.parse_args()
@@ -43,14 +49,14 @@ def main():
             )
         model, config = builder.build()
 
-        print(f"{'=' * 5} Configuration summary {'=' * 92}")
-        print("")
+        logger.info(f"{'=' * 5} Configuration summary {'=' * 92}")
+        logger.info(f"")
         for key, value in config.items():
-            print(f"{key:<25} = {value}")
-        print("")
-        print("=" * 120)
+            logger.info(f"{key:<25} = {value}")
+        logger.info(f"")
+        logger.info("=" * 120)
 
-        loggers = []
+        pl_loggers = []
         run = (
             f"network_{args.network}.criteria-warped_{args.criteria_warped}.criteria-flow_{args.criteria_flow}."
             f"reg-strategy_{args.registration_strategy}.reg-target_{args.registration_target}."
@@ -58,9 +64,10 @@ def main():
             f"learning-rate_{args.learning_rate:.0E}"
         )
         run_path = f"model_weights_v3/{run}"
+        logger.info(f"Model weights are found in {run_path}")
 
         if args.log:
-            loggers = [
+            pl_loggers = [
                 pll.WandbLogger(
                     save_dir="logs", project="lung-registration", config=config
                 )
@@ -72,11 +79,9 @@ def main():
             filename="{val_loss:.8f}&{epoch}",
             save_top_k=5,
         )
-        early_stopping_callback = plc.EarlyStopping("val_loss", patience=5)
 
         callbacks = [
             checkpoint_callback,
-            early_stopping_callback,
         ]
 
         trainer = pl.Trainer(
@@ -84,7 +89,7 @@ def main():
             log_every_n_steps=1,
             deterministic=False,
             benchmark=False,
-            logger=loggers,
+            logger=pl_loggers,
             callbacks=callbacks,
             precision="32",
         )
@@ -102,10 +107,20 @@ def main():
         )
 
         torch.set_float32_matmul_precision("high")
+        logger.info(f"{'=' * 5} Training {'=' * 105}")
         trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
+        logger.info(f"{'=' * 5} Testing {'=' * 106}")
         trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
+        logger.info("=" * 120)
 
-    elif args.command == "test":
-        ...
     elif args.command == "pred":
-        ...
+        model, config = TransMorphModuleBuilder.from_ckpt(args.ckpt).build()
+        logger.info(f"{'=' * 5} Configuration summary {'=' * 92}")
+        logger.info(f"")
+        for key, value in config.items():
+            logger.info(f"{key:<25} = {value}")
+        logger.info(f"")
+        logger.info("=" * 120)
+
+        # TODO: add output path to arguments
+        raise RuntimeError("Prediction not implemented.")

@@ -89,14 +89,6 @@ def create_parser() -> argparse.ArgumentParser:
         help="consider target image deformation",
     )
 
-    parser_test = subparsers.add_parser(
-        name="test",
-        description="Loads a model from a ckpt file. Evaluates it against a test dataset.",
-    )
-    parser_test.add_argument(
-        "ckpt", type=str, help="path to a checkpoint file loading a TransMorphModule"
-    )
-
     parser_pred = subparsers.add_parser(
         name="pred",
         description="Loads a model from a ckpt file and provides a prediction for a single file.",
