@@ -2,14 +2,10 @@ from __future__ import annotations
 
 from typing import Tuple, Any
 import os
+import logging
 
-from pathlib2 import Path
 import torch
-import json
 
-from reg.transmorph.transmorph_bayes import TransMorphBayes
-from reg.transmorph.transmorph import TransMorph
-from reg.transmorph.configs import CONFIG_TM
 from reg.metrics import CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
 from reg.model.model import TransMorphModule, RegistrationStrategy, RegistrationTarget
 
@@ -19,13 +15,16 @@ CONFIGS_OPTIMIZER = {
     "adam-w": torch.optim.AdamW,
 }
 
+logger = logging.getLogger(__name__)
+
 
 class TransMorphModuleBuilder:
     def __init__(self):
+        self.is_ckpt = False
         self.model = None
         self.config = {}
         self.hyperparams = {
-            "net": TransMorph(CONFIG_TM["transmorph"]),
+            "network": "transmorph",
             "criteria_warped": [(CONFIGS_WAPRED_LOSS["gmi"], 1.0)],
             "criteria_flow": [(CONFIGS_FLOW_LOSS["gl2d"], 1.0)],
             "registration_target": RegistrationTarget.LAST,
@@ -43,9 +42,10 @@ class TransMorphModuleBuilder:
         assert os.path.isfile(ckpt), f"Path does not point to a file. Given: {ckpt}"
 
         builder = cls()
-
+        builder.is_ckpt = True
         builder.model = TransMorphModule.load_from_checkpoint(str(ckpt), strict=strict)
-        builder.hyperparams["net"] = builder.model.net
+
+        builder.hyperparams["network"] = builder.model.network
         builder.hyperparams["criteria_warped"] = builder.model.criteria_warped
         builder.hyperparams["criteria_flow"] = builder.model.criteria_flow
         builder.hyperparams["registration_target"] = builder.model.registration_target
@@ -64,7 +64,7 @@ class TransMorphModuleBuilder:
     def build(self) -> Tuple[TransMorphModule, dict]:
         if self.model is None:
             self.model = TransMorphModule(
-                net=self.hyperparams["net"],
+                network=self.hyperparams["network"],
                 criteria_warped=self.hyperparams["criteria_warped"],
                 criteria_flow=self.hyperparams["criteria_flow"],
                 registration_target=self.hyperparams["registration_target"],
@@ -93,21 +93,12 @@ class TransMorphModuleBuilder:
         return self.model, self.config
 
     def set_network(self, config_identifier: str) -> TransMorphModuleBuilder:
-        config = CONFIG_TM[config_identifier]
-        config.img_size = (
-            *config.img_size[:-1],
-            self.hyperparams["registration_depth"],
-        )
-
-        descriptors = config_identifier.split("-")
-        net = (
-            TransMorphBayes(config)
-            if len(descriptors) > 1 and descriptors[1] == "bayes"
-            else TransMorph(config)
-        )
-
-        self.hyperparams["net"] = net
-        self.config["network"] = config_identifier
+        if not self.is_ckpt:
+            logger.info(f"network = {config_identifier}")
+            self.hyperparams["network"] = config_identifier
+            self.config["network"] = config_identifier
+        else:
+            logger.warning("Cannot change network as it is a ckpt.")
 
         return self
 
@@ -118,6 +109,8 @@ class TransMorphModuleBuilder:
             criteria = criteria_warped.split("-")
         else:
             criteria = [value for entry in criteria_warped for value in entry]
+
+        logger.info(f"criteria_warped = {criteria}")
 
         criteria_warped = [
             (criteria[i], CONFIGS_WAPRED_LOSS[criteria[i]], float(criteria[i + 1]))
@@ -141,6 +134,8 @@ class TransMorphModuleBuilder:
         else:
             criteria = [value for entry in criteria_flow for value in entry]
 
+        logger.info(f"criteria_flow = {criteria}")
+
         criteria_flow = [
             (criteria[i], CONFIGS_FLOW_LOSS[criteria[i]], float(criteria[i + 1]))
             for i in range(0, len(criteria), 2)
@@ -158,68 +153,56 @@ class TransMorphModuleBuilder:
     def set_registration_strategy(
         self, registration_strategy: str
     ) -> TransMorphModuleBuilder:
+        logger.info(f"registration_strategy = {registration_strategy}")
         registration_strategy = RegistrationStrategy[registration_strategy.upper()]
-
         self.hyperparams["registration_strategy"] = registration_strategy
         self.config["registration_strategy"] = registration_strategy.name.lower()
-
         return self
 
     def set_registration_target(
         self, registration_target: str
     ) -> TransMorphModuleBuilder:
+        logger.info(f"registration_strategy = {registration_target}")
         registration_target = RegistrationTarget[registration_target.upper()]
-
         self.hyperparams["registration_target"] = registration_target
         self.config["registration_target"] = registration_target.name.lower()
-
         return self
 
     def set_registration_depth(
         self, registration_depth: int
     ) -> TransMorphModuleBuilder:
-        config_identifier = (
-            self.config["network"] if "network" in self.config else "transmorph"
-        )
-
-        config = CONFIG_TM[config_identifier]
-        config.img_size = (*config.img_size[:-1], registration_depth)
-
-        descriptors = config_identifier.split("-")
-        net = (
-            TransMorphBayes(config)
-            if len(descriptors) > 1 and descriptors[1] == "bayes"
-            else TransMorph(config)
-        )
-
-        self.hyperparams["net"] = net
-        self.hyperparams["registration_depth"] = registration_depth
-        self.config["registration_depth"] = registration_depth
-
+        if not self.is_ckpt:
+            logger.info(f"registration_depth = {registration_depth}")
+            self.hyperparams["registration_depth"] = registration_depth
+            self.config["registration_depth"] = registration_depth
+        else:
+            logger.warning("Cannot change registration_depth as it is a ckpt. Indirectly affects network.")
         return self
 
     def set_registration_stride(
         self, registration_stride: int
     ) -> TransMorphModuleBuilder:
+        logger.info(f"registration_stride = {registration_stride}")
         self.hyperparams["registration_stride"] = registration_stride
         self.config["registration_stride"] = registration_stride
         return self
 
     def set_identity_loss(self, identity_loss: bool) -> TransMorphModuleBuilder:
+        logger.info(f"identity_loss = {identity_loss}")
         self.hyperparams["identity_loss"] = identity_loss
         self.config["identity_loss"] = identity_loss
         return self
 
     def set_optimizer(self, optimizer: str) -> TransMorphModuleBuilder:
+        logger.info(f"optimizer = {optimizer}")
         optimizer_name = optimizer
         optimizer = CONFIGS_OPTIMIZER[optimizer]
-
         self.hyperparams["optimizer"] = optimizer
         self.config["optimizer"] = optimizer_name
-
         return self
 
     def set_learning_rate(self, learning_rate: float) -> TransMorphModuleBuilder:
+        logger.info(f"learning_rate = {learning_rate}")
         self.hyperparams["learning_rate"] = learning_rate
         self.config["learning_rate"] = learning_rate
         return self

@@ -1,15 +1,19 @@
 from enum import Enum
 from typing import Any, Tuple, List, Mapping
 import gc
+import logging
 
 import monai.metrics
 import numpy as np
 import pytorch_lightning as pl
 import torch
 
+from reg.transmorph.configs import CONFIG_TM
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
 from reg.metrics import jacobian_det
+
+logger = logging.getLogger(__name__)
 
 
 class RegistrationTarget(Enum):
@@ -25,7 +29,7 @@ class RegistrationStrategy(Enum):
 class TransMorphModule(pl.LightningModule):
     def __init__(
         self,
-        net: TransMorph | TransMorphBayes,
+        network: str,
         criteria_warped: List[Tuple[torch.nn.Module, float]],
         criteria_flow: List[Tuple[torch.nn.Module, float]],
         registration_target: RegistrationTarget,
@@ -39,7 +43,7 @@ class TransMorphModule(pl.LightningModule):
     ):
         super().__init__()
 
-        self.net = net
+        self.network = network
         self.criteria_warped = criteria_warped
         self.criteria_flow = criteria_flow
         self.registration_target = registration_target
@@ -53,6 +57,19 @@ class TransMorphModule(pl.LightningModule):
 
         self.save_hyperparameters(ignore=["net"])
 
+        config = CONFIG_TM[self.network]
+        config.img_size = (
+            *config.img_size[:-1],
+            self.registration_depth,
+        )
+
+        descriptors = self.network.split("-")
+        self.net = (
+            TransMorphBayes(config)
+            if len(descriptors) > 1 and descriptors[1] == "bayes"
+            else TransMorph(config)
+        )
+
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0
         for loss_fn, weight in self.criteria_warped:
@@ -62,6 +79,7 @@ class TransMorphModule(pl.LightningModule):
                 )
             )
             loss *= weight
+        logger.debug(f"warped_loss = {loss}")
         return loss
 
     def _compute_flow_loss(self, flow) -> float:
@@ -71,21 +89,8 @@ class TransMorphModule(pl.LightningModule):
                 torch.stack([loss_fn(f) for f in flow.permute(-1, 0, 1, 2, 3)])
             )
             loss *= weight
+        logger.debug(f"flow_loss = {loss}")
         return loss
-
-    def extract_fixed_image(self, series: torch.Tensor):
-        if self.registration_target == RegistrationTarget.LAST:
-            return series[..., -1].view(series.shape[:-1])
-        elif self.registration_target == RegistrationTarget.MEAN:
-            means = torch.mean(series, (-2, -3)).view(-1)[20:]
-            mean_of_means = torch.mean(means)
-            diff = torch.abs(means - mean_of_means)
-            _, i = torch.topk(diff, 1, largest=False)
-            return series[..., i].view(series.shape[:-1])
-        else:
-            raise ValueError(
-                f"strategy has to be last or mean, was {self.registration_target.name.lower()}"
-            )
 
     def _segment_registration(self, series):
         # Prepare to process series
@@ -142,6 +147,20 @@ class TransMorphModule(pl.LightningModule):
     def _group_registration(self, series):
         raise NotImplementedError()
 
+    def extract_fixed_image(self, series: torch.Tensor):
+        if self.registration_target == RegistrationTarget.LAST:
+            return series[..., -1].view(series.shape[:-1])
+        elif self.registration_target == RegistrationTarget.MEAN:
+            means = torch.mean(series, (-2, -3)).view(-1)[20:]
+            mean_of_means = torch.mean(means)
+            diff = torch.abs(means - mean_of_means)
+            _, i = torch.topk(diff, 1, largest=False)
+            return series[..., i].view(series.shape[:-1])
+        else:
+            raise ValueError(
+                f"strategy has to be last or mean, was {self.registration_target.name.lower()}"
+            )
+
     def forward(self, series: torch.Tensor):
         if RegistrationStrategy.SOREG:
             return self._segment_registration(series)
@@ -155,6 +174,7 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
+        logger.debug(f"train_loss = {loss}")
         del warped, flow
 
         if self.identity_loss:
@@ -181,6 +201,7 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
+        logger.debug(f"val_loss = {loss}")
         del warped, flow
 
         self.log_dict(
@@ -224,6 +245,7 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
+        logger.debug(f"test_loss = {loss}")
         del warped, flow, fixed_np, flow_np
 
         result = {
