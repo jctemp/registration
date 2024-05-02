@@ -1,7 +1,6 @@
 from enum import Enum
 from typing import Any, Tuple, List, Mapping
 import gc
-import logging
 
 import monai.metrics
 import numpy as np
@@ -12,8 +11,6 @@ from reg.transmorph.configs import CONFIG_TM
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
 from reg.metrics import jacobian_det
-
-logger = logging.getLogger(__name__)
 
 
 class RegistrationTarget(Enum):
@@ -79,7 +76,6 @@ class TransMorphModule(pl.LightningModule):
                 )
             )
             loss *= weight
-        logger.debug(f"warped_loss = {loss}")
         return loss
 
     def _compute_flow_loss(self, flow) -> float:
@@ -89,7 +85,6 @@ class TransMorphModule(pl.LightningModule):
                 torch.stack([loss_fn(f) for f in flow.permute(-1, 0, 1, 2, 3)])
             )
             loss *= weight
-        logger.debug(f"flow_loss = {loss}")
         return loss
 
     def _segment_registration(self, series):
@@ -174,7 +169,6 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
-        logger.debug(f"train_loss = {loss}")
         del warped, flow
 
         if self.identity_loss:
@@ -201,7 +195,6 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
-        logger.debug(f"val_loss = {loss}")
         del warped, flow
 
         self.log_dict(
@@ -245,7 +238,6 @@ class TransMorphModule(pl.LightningModule):
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
         loss += self._compute_flow_loss(flow)
-        logger.debug(f"test_loss = {loss}")
         del warped, flow, fixed_np, flow_np
 
         result = {

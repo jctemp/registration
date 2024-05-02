@@ -1,5 +1,4 @@
 import os
-import logging
 
 import pytorch_lightning as pl
 import pytorch_lightning.callbacks as plc
@@ -10,18 +9,16 @@ from reg.cli.parser import create_parser
 from reg.data import LungDataModule
 from reg.model import TransMorphModuleBuilder
 
-logger = logging.getLogger(__name__)
-
 
 def main():
     """
     Main function for the CLI.
     """
     if not torch.cuda.is_available():
-        logger.error("Require CUDA to train model")
+        print("Require CUDA to train model")
         raise RuntimeError("CUDA is not available")
 
-    logger.info("Prepare training")
+    print("Prepare training")
 
     parser = create_parser()
     args = parser.parse_args()
@@ -49,12 +46,12 @@ def main():
             )
         model, config = builder.build()
 
-        logger.info(f"{'=' * 5} Configuration summary {'=' * 92}")
-        logger.info(f"")
+        print(f"{'=' * 5} Configuration summary {'=' * 92}")
+        print(f"")
         for key, value in config.items():
-            logger.info(f"{key:<25} = {value}")
-        logger.info(f"")
-        logger.info("=" * 120)
+            print(f"{key:<25} = {value}")
+        print(f"")
+        print("=" * 120)
 
         pl_loggers = []
         run = (
@@ -64,7 +61,7 @@ def main():
             f"learning-rate_{args.learning_rate:.0E}"
         )
         run_path = f"model_weights_v3/{run}"
-        logger.info(f"Model weights are found in {run_path}")
+        print(f"Model weights are found in {run_path}")
 
         if args.log:
             pl_loggers = [
@@ -107,20 +104,20 @@ def main():
         )
 
         torch.set_float32_matmul_precision("high")
-        logger.info(f"{'=' * 5} Training {'=' * 105}")
+        print(f"{'=' * 5} Training {'=' * 105}")
         trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
-        logger.info(f"{'=' * 5} Testing {'=' * 106}")
+        print(f"{'=' * 5} Testing {'=' * 106}")
         trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
-        logger.info("=" * 120)
+        print("=" * 120)
 
     elif args.command == "pred":
         model, config = TransMorphModuleBuilder.from_ckpt(args.ckpt).build()
-        logger.info(f"{'=' * 5} Configuration summary {'=' * 92}")
-        logger.info(f"")
+        print(f"{'=' * 5} Configuration summary {'=' * 92}")
+        print(f"")
         for key, value in config.items():
-            logger.info(f"{key:<25} = {value}")
-        logger.info(f"")
-        logger.info("=" * 120)
+            print(f"{key:<25} = {value}")
+        print(f"")
+        print("=" * 120)
 
         # TODO: add output path to arguments
         raise RuntimeError("Prediction not implemented.")

@@ -2,7 +2,6 @@ from __future__ import annotations
 
 from typing import Tuple, Any
 import os
-import logging
 
 import torch
 
@@ -14,8 +13,6 @@ CONFIGS_OPTIMIZER = {
     "adam": torch.optim.Adam,
     "adam-w": torch.optim.AdamW,
 }
-
-logger = logging.getLogger(__name__)
 
 
 class TransMorphModuleBuilder:
@@ -94,11 +91,11 @@ class TransMorphModuleBuilder:
 
     def set_network(self, config_identifier: str) -> TransMorphModuleBuilder:
         if not self.is_ckpt:
-            logger.info(f"network = {config_identifier}")
+            print(f"network = {config_identifier}")
             self.hyperparams["network"] = config_identifier
             self.config["network"] = config_identifier
         else:
-            logger.warning("Cannot change network as it is a ckpt.")
+            print("WARN: Cannot change network as it is a ckpt.")
 
         return self
 
@@ -110,7 +107,7 @@ class TransMorphModuleBuilder:
         else:
             criteria = [value for entry in criteria_warped for value in entry]
 
-        logger.info(f"criteria_warped = {criteria}")
+        print(f"criteria_warped = {criteria}")
 
         criteria_warped = [
             (criteria[i], CONFIGS_WAPRED_LOSS[criteria[i]], float(criteria[i + 1]))
@@ -134,7 +131,7 @@ class TransMorphModuleBuilder:
         else:
             criteria = [value for entry in criteria_flow for value in entry]
 
-        logger.info(f"criteria_flow = {criteria}")
+        print(f"criteria_flow = {criteria}")
 
         criteria_flow = [
             (criteria[i], CONFIGS_FLOW_LOSS[criteria[i]], float(criteria[i + 1]))
@@ -153,7 +150,7 @@ class TransMorphModuleBuilder:
     def set_registration_strategy(
         self, registration_strategy: str
     ) -> TransMorphModuleBuilder:
-        logger.info(f"registration_strategy = {registration_strategy}")
+        print(f"registration_strategy = {registration_strategy}")
         registration_strategy = RegistrationStrategy[registration_strategy.upper()]
         self.hyperparams["registration_strategy"] = registration_strategy
         self.config["registration_strategy"] = registration_strategy.name.lower()
@@ -162,7 +159,7 @@ class TransMorphModuleBuilder:
     def set_registration_target(
         self, registration_target: str
     ) -> TransMorphModuleBuilder:
-        logger.info(f"registration_strategy = {registration_target}")
+        print(f"registration_strategy = {registration_target}")
         registration_target = RegistrationTarget[registration_target.upper()]
         self.hyperparams["registration_target"] = registration_target
         self.config["registration_target"] = registration_target.name.lower()
@@ -172,29 +169,29 @@ class TransMorphModuleBuilder:
         self, registration_depth: int
     ) -> TransMorphModuleBuilder:
         if not self.is_ckpt:
-            logger.info(f"registration_depth = {registration_depth}")
+            print(f"registration_depth = {registration_depth}")
             self.hyperparams["registration_depth"] = registration_depth
             self.config["registration_depth"] = registration_depth
         else:
-            logger.warning("Cannot change registration_depth as it is a ckpt. Indirectly affects network.")
+            print("WARN: Cannot change registration_depth as it is a ckpt. Indirectly affects network.")
         return self
 
     def set_registration_stride(
         self, registration_stride: int
     ) -> TransMorphModuleBuilder:
-        logger.info(f"registration_stride = {registration_stride}")
+        print(f"registration_stride = {registration_stride}")
         self.hyperparams["registration_stride"] = registration_stride
         self.config["registration_stride"] = registration_stride
         return self
 
     def set_identity_loss(self, identity_loss: bool) -> TransMorphModuleBuilder:
-        logger.info(f"identity_loss = {identity_loss}")
+        print(f"identity_loss = {identity_loss}")
         self.hyperparams["identity_loss"] = identity_loss
         self.config["identity_loss"] = identity_loss
         return self
 
     def set_optimizer(self, optimizer: str) -> TransMorphModuleBuilder:
-        logger.info(f"optimizer = {optimizer}")
+        print(f"optimizer = {optimizer}")
         optimizer_name = optimizer
         optimizer = CONFIGS_OPTIMIZER[optimizer]
         self.hyperparams["optimizer"] = optimizer
@@ -202,7 +199,7 @@ class TransMorphModuleBuilder:
         return self
 
     def set_learning_rate(self, learning_rate: float) -> TransMorphModuleBuilder:
-        logger.info(f"learning_rate = {learning_rate}")
+        print(f"learning_rate = {learning_rate}")
         self.hyperparams["learning_rate"] = learning_rate
         self.config["learning_rate"] = learning_rate
         return self
