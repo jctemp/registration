@@ -20,10 +20,8 @@ import torch
 # specific language governing permissions and limitations
 # under the License.
 #
-# https://github.com/voxelmorph/voxelmorph
+# https://github.com/junyuchen245/TransMorph_Transformer_for_Medical_Image_Registration
 #
-# Edited by Jamie Temple
-# Date: 2024-04-08
 
 
 class Grad2dLoss(torch.nn.Module):
