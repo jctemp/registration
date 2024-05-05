@@ -19,13 +19,13 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser_train = subparsers.add_parser(
         name="train",
-        description="Creates a new model. Sets hyperparameters and starts training",
+        description="Creates a new wrapper. Sets hyperparameters and starts training",
     )
     parser_train.add_argument(
         "--resume", type=str, help="checkpoint file load to continue training"
     )
     parser_train.add_argument(
-        "--epochs", type=int, default=100, help="number of epochs to train the model"
+        "--epochs", type=int, default=100, help="number of epochs to train the wrapper"
     )
     parser_train.add_argument(
         "network",
@@ -91,7 +91,7 @@ def create_parser() -> argparse.ArgumentParser:
 
     parser_pred = subparsers.add_parser(
         name="pred",
-        description="Loads a model from a ckpt file and provides a prediction for a single file.",
+        description="Loads a wrapper from a ckpt file and provides a prediction for a single file.",
     )
     parser_pred.add_argument(
         "ckpt", type=str, help="path to a checkpoint file loading a TransMorphModule"

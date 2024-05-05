@@ -7,7 +7,7 @@ import torch
 
 from reg.cli.parser import create_parser
 from reg.data import LungDataModule
-from reg.model import TransMorphModuleBuilder
+from reg.wrapper import TransMorphModuleBuilder
 
 
 def main():
@@ -15,7 +15,7 @@ def main():
     Main function for the CLI.
     """
     if not torch.cuda.is_available():
-        print("Require CUDA to train model")
+        print("Require CUDA to train wrapper")
         raise RuntimeError("CUDA is not available")
 
     print("Prepare training")

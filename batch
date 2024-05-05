@@ -15,7 +15,7 @@ parser.add_argument(
     "--resume", type=str, help="checkpoint file load to continue training"
 )
 parser.add_argument(
-    "--epochs", type=int, default=100, help="number of epochs to train the model"
+    "--epochs", type=int, default=100, help="number of epochs to train the wrapper"
 )
 parser.add_argument(
     "network",
