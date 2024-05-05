@@ -5,7 +5,7 @@ import os
 
 import torch
 
-from reg.metrics import CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
+from reg.measure import CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
 from reg.model.model import TransMorphModule, RegistrationStrategy, RegistrationTarget
 
 CONFIGS_OPTIMIZER = {

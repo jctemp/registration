@@ -10,7 +10,7 @@ import torch
 from reg.transmorph.configs import CONFIG_TM
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
-from reg.metrics import jacobian_det
+from reg.measure import jacobian_det
 
 
 class RegistrationTarget(Enum):
