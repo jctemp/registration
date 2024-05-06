@@ -163,9 +163,9 @@ class TransMorphModule(pl.LightningModule):
         raise NotImplementedError()
 
     def extract_fixed_image(self, series: torch.Tensor):
-        if self.registration_target == RegistrationTarget.LAST:
+        if self.registration_target_e == RegistrationTarget.LAST:
             return series[..., -1].view(series.shape[:-1])
-        elif self.registration_target == RegistrationTarget.MEAN:
+        elif self.registration_target_e == RegistrationTarget.MEAN:
             means = torch.mean(series, (-2, -3)).view(-1)[20:]
             mean_of_means = torch.mean(means)
             diff = torch.abs(means - mean_of_means)
@@ -173,15 +173,15 @@ class TransMorphModule(pl.LightningModule):
             return series[..., i].view(series.shape[:-1])
         else:
             raise ValueError(
-                f"strategy has to be last or mean, was {self.registration_target.name.lower()}"
+                f"strategy has to be last or mean, was {self.registration_target_e.name.lower()}"
             )
 
     def forward(self, series: torch.Tensor):
-        if RegistrationStrategy.SOREG:
+        if self.registration_strategy_e == RegistrationStrategy.SOREG:
             return self._segment_registration(series)
-        elif RegistrationStrategy.GOREG:
+        elif self.registration_strategy_e == RegistrationStrategy.GOREG:
             return self._group_registration(series)
-        raise ValueError(f"Invalid strategy {self.registration_strategy}")
+        raise ValueError(f"Invalid strategy {self.registration_strategy_e}")
 
     def training_step(self, batch, **kwargs: Any) -> float:
         warped, flow, fixed = self(batch)
