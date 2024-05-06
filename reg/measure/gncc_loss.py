@@ -20,14 +20,13 @@ class GlobalNormalizedCrossCorrelationLoss(torch.nn.Module):
 
     def __init__(
             self,
-            name: str = "GlobalNormalizedCrossCorrelation",
             reduction: LossReduction | str = LossReduction.MEAN,
     ):
         """
         Init.
-        :param name: name of the loss
+        reduction: how to reduce the final value
         """
-        super().__init__(name=name)
+        super().__init__()
         self.reduction = reduction
 
     def forward(self, y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
