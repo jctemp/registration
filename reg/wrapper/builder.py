@@ -175,8 +175,6 @@ class TransMorphModuleBuilder:
 
     def set_optimizer(self, optimizer: str) -> TransMorphModuleBuilder:
         print(f"optimizer = {optimizer}")
-        optimizer_name = optimizer
-        optimizer = CONFIGS_OPTIMIZER[optimizer]
         self.hyperparams["optimizer"] = optimizer
         return self
 
