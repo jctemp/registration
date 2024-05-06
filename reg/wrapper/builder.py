@@ -45,7 +45,6 @@ class TransMorphModuleBuilder:
         builder.hyperparams["identity_loss"] = builder.model.identity_loss
         builder.hyperparams["optimizer"] = builder.model.optimizer
         builder.hyperparams["learning_rate"] = builder.model.learning_rate
-        builder.config = builder.model.config
 
         return builder
 
