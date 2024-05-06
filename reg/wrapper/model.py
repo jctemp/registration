@@ -10,7 +10,13 @@ import torch
 from reg.transmorph.configs import CONFIG_TM
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
-from reg.measure import jacobian_det
+from reg.measure import jacobian_det, CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
+
+CONFIGS_OPTIMIZER = {
+    "sgd": torch.optim.SGD,
+    "adam": torch.optim.Adam,
+    "adam-w": torch.optim.AdamW,
+}
 
 
 class RegistrationTarget(Enum):
@@ -25,18 +31,17 @@ class RegistrationStrategy(Enum):
 
 class TransMorphModule(pl.LightningModule):
     def __init__(
-        self,
-        network: str,
-        criteria_warped: List[Tuple[torch.nn.Module, float]],
-        criteria_flow: List[Tuple[torch.nn.Module, float]],
-        registration_target: RegistrationTarget,
-        registration_strategy: RegistrationStrategy,
-        registration_depth: int,
-        registration_stride: int,
-        identity_loss: bool,
-        optimizer: torch.optim,
-        learning_rate: float,
-        config: dict,
+            self,
+            network: str,
+            criteria_warped: List[Tuple[str, float]],
+            criteria_flow: List[Tuple[str, float]],
+            registration_target: str,
+            registration_strategy: str,
+            registration_depth: int,
+            registration_stride: int,
+            identity_loss: bool,
+            optimizer: str,
+            learning_rate: float,
     ):
         super().__init__()
 
@@ -50,9 +55,9 @@ class TransMorphModule(pl.LightningModule):
         self.identity_loss = identity_loss
         self.optimizer = optimizer
         self.learning_rate = learning_rate
-        self.config = config
 
-        self.save_hyperparameters(ignore=["net"])
+        self.save_hyperparameters(ignore=["net", "criteria_warped_nnf", "criteria_flow_nnf", "optimizer_nnf",
+                                          "registration_target_e", "registration_strategy_e"])
 
         config = CONFIG_TM[self.network]
         config.img_size = (
@@ -67,9 +72,24 @@ class TransMorphModule(pl.LightningModule):
             else TransMorph(config)
         )
 
+        self.criteria_warped_nnf = [
+            (CONFIGS_WAPRED_LOSS[name], weight)
+            for name, weight in criteria_warped
+        ]
+
+        self.criteria_flow_nnf = [
+            (CONFIGS_FLOW_LOSS[name], weight)
+            for name, weight in criteria_flow
+        ]
+
+        self.registration_target_e = RegistrationTarget[registration_target.upper()]
+        self.registration_strategy_e = RegistrationStrategy[registration_strategy.upper()]
+
+        self.optimizer_nnf = CONFIGS_OPTIMIZER[optimizer]
+
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0
-        for loss_fn, weight in self.criteria_warped:
+        for loss_fn, weight in self.criteria_warped_nnf:
             loss += torch.mean(
                 torch.stack(
                     [loss_fn(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
@@ -80,7 +100,7 @@ class TransMorphModule(pl.LightningModule):
 
     def _compute_flow_loss(self, flow) -> float:
         loss = 0
-        for loss_fn, weight in self.criteria_flow:
+        for loss_fn, weight in self.criteria_flow_nnf:
             loss += torch.mean(
                 torch.stack([loss_fn(f) for f in flow.permute(-1, 0, 1, 2, 3)])
             )
@@ -129,8 +149,8 @@ class TransMorphModule(pl.LightningModule):
             warped, flow = self.net(in_series)
 
             # Note: we need to shift by one to exclude fixed
-            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1 :]
-            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1 :]
+            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
+            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
             del warped, flow, in_series
 
         # Clean all de-referenced data
@@ -271,4 +291,4 @@ class TransMorphModule(pl.LightningModule):
         return warped, flow
 
     def configure_optimizers(self):
-        return self.optimizer(self.net.parameters(), lr=self.learning_rate)
+        return self.optimizer_nnf(self.net.parameters(), lr=self.learning_rate)

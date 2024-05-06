@@ -3,33 +3,24 @@ from __future__ import annotations
 from typing import Tuple, Any
 import os
 
-import torch
-
+from reg.wrapper.model import CONFIGS_OPTIMIZER, TransMorphModule, RegistrationTarget, RegistrationStrategy
 from reg.measure import CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
-from reg.wrapper.model import TransMorphModule, RegistrationStrategy, RegistrationTarget
-
-CONFIGS_OPTIMIZER = {
-    "sgd": torch.optim.SGD,
-    "adam": torch.optim.Adam,
-    "adam-w": torch.optim.AdamW,
-}
 
 
 class TransMorphModuleBuilder:
     def __init__(self):
         self.is_ckpt = False
         self.model = None
-        self.config = {}
         self.hyperparams = {
             "network": "transmorph",
-            "criteria_warped": [(CONFIGS_WAPRED_LOSS["gmi"], 1.0)],
-            "criteria_flow": [(CONFIGS_FLOW_LOSS["gl2d"], 1.0)],
-            "registration_target": RegistrationTarget.LAST,
-            "registration_strategy": RegistrationStrategy.SOREG,
+            "criteria_warped": [("mse", 1.0)],
+            "criteria_flow": [("gl2d", 1.0)],
+            "registration_target": "last",
+            "registration_strategy": "soreg",
             "registration_depth": 32,
             "registration_stride": 1,
             "identity_loss": False,
-            "optimizer": torch.optim.Adam,
+            "optimizer": "adam",
             "learning_rate": 1e-4,
         }
 
@@ -71,26 +62,39 @@ class TransMorphModuleBuilder:
                 identity_loss=self.hyperparams["identity_loss"],
                 optimizer=self.hyperparams["optimizer"],
                 learning_rate=self.hyperparams["learning_rate"],
-                config=self.config,
             )
         else:
+            self.model.registration_stride = self.hyperparams["registration_stride"]
+            self.model.identity_loss = self.hyperparams["identity_loss"]
+            self.model.learning_rate = self.hyperparams["learning_rate"]
+
             self.model.criteria_warped = self.hyperparams["criteria_warped"]
             self.model.criteria_flow = self.hyperparams["criteria_flow"]
             self.model.registration_target = self.hyperparams["registration_target"]
             self.model.registration_strategy = self.hyperparams["registration_strategy"]
-            self.model.registration_stride = self.hyperparams["registration_stride"]
-            self.model.identity_loss = self.hyperparams["identity_loss"]
             self.model.optimizer = self.hyperparams["optimizer"]
-            self.model.learning_rate = self.hyperparams["learning_rate"]
-            self.model.config = self.config
 
-        return self.model, self.config
+            self.model.criteria_warped_nnf = [
+                (CONFIGS_WAPRED_LOSS[name], weight)
+                for name, weight in self.hyperparams["criteria_warped"]
+            ]
+
+            self.model.criteria_flow_nnf = [
+                (CONFIGS_FLOW_LOSS[name], weight)
+                for name, weight in self.hyperparams["criteria_flow"]
+            ]
+
+            self.model.registration_target_e = RegistrationTarget[self.hyperparams["registration_target"].upper()]
+            self.model.registration_strategy_e = RegistrationStrategy[self.hyperparams["registration_strategy"].upper()]
+
+            self.model.optimizer_nnf = CONFIGS_OPTIMIZER[self.hyperparams["optimizer"]]
+
+        return self.model, self.hyperparams
 
     def set_network(self, config_identifier: str) -> TransMorphModuleBuilder:
         if not self.is_ckpt:
             print(f"network = {config_identifier}")
             self.hyperparams["network"] = config_identifier
-            self.config["network"] = config_identifier
         else:
             print("WARN: Cannot change network as it is a ckpt.")
 
@@ -107,16 +111,11 @@ class TransMorphModuleBuilder:
         print(f"criteria_warped = {criteria}")
 
         criteria_warped = [
-            (criteria[i], CONFIGS_WAPRED_LOSS[criteria[i]], float(criteria[i + 1]))
+            (criteria[i], float(criteria[i + 1]))
             for i in range(0, len(criteria), 2)
         ]
 
-        self.hyperparams["criteria_warped"] = [
-            (loss_fn, w) for (_, loss_fn, w) in criteria_warped
-        ]
-        self.config["criteria_warped"] = [
-            (name, w) for (name, loss_fn, w) in criteria_warped
-        ]
+        self.hyperparams["criteria_warped"] = criteria_warped
 
         return self
 
@@ -131,16 +130,11 @@ class TransMorphModuleBuilder:
         print(f"criteria_flow = {criteria}")
 
         criteria_flow = [
-            (criteria[i], CONFIGS_FLOW_LOSS[criteria[i]], float(criteria[i + 1]))
+            (criteria[i], float(criteria[i + 1]))
             for i in range(0, len(criteria), 2)
         ]
 
-        self.hyperparams["criteria_flow"] = [
-            (loss_fn, w) for (_, loss_fn, w) in criteria_flow
-        ]
-        self.config["criteria_flow"] = [
-            (name, w) for (name, loss_fn, w) in criteria_flow
-        ]
+        self.hyperparams["criteria_flow"] = criteria_flow
 
         return self
 
@@ -148,18 +142,14 @@ class TransMorphModuleBuilder:
         self, registration_strategy: str
     ) -> TransMorphModuleBuilder:
         print(f"registration_strategy = {registration_strategy}")
-        registration_strategy = RegistrationStrategy[registration_strategy.upper()]
         self.hyperparams["registration_strategy"] = registration_strategy
-        self.config["registration_strategy"] = registration_strategy.name.lower()
         return self
 
     def set_registration_target(
         self, registration_target: str
     ) -> TransMorphModuleBuilder:
         print(f"registration_strategy = {registration_target}")
-        registration_target = RegistrationTarget[registration_target.upper()]
         self.hyperparams["registration_target"] = registration_target
-        self.config["registration_target"] = registration_target.name.lower()
         return self
 
     def set_registration_depth(
@@ -168,7 +158,6 @@ class TransMorphModuleBuilder:
         if not self.is_ckpt:
             print(f"registration_depth = {registration_depth}")
             self.hyperparams["registration_depth"] = registration_depth
-            self.config["registration_depth"] = registration_depth
         else:
             print("WARN: Cannot change registration_depth as it is a ckpt. Indirectly affects network.")
         return self
@@ -178,13 +167,11 @@ class TransMorphModuleBuilder:
     ) -> TransMorphModuleBuilder:
         print(f"registration_stride = {registration_stride}")
         self.hyperparams["registration_stride"] = registration_stride
-        self.config["registration_stride"] = registration_stride
         return self
 
     def set_identity_loss(self, identity_loss: bool) -> TransMorphModuleBuilder:
         print(f"identity_loss = {identity_loss}")
         self.hyperparams["identity_loss"] = identity_loss
-        self.config["identity_loss"] = identity_loss
         return self
 
     def set_optimizer(self, optimizer: str) -> TransMorphModuleBuilder:
@@ -192,11 +179,9 @@ class TransMorphModuleBuilder:
         optimizer_name = optimizer
         optimizer = CONFIGS_OPTIMIZER[optimizer]
         self.hyperparams["optimizer"] = optimizer
-        self.config["optimizer"] = optimizer_name
         return self
 
     def set_learning_rate(self, learning_rate: float) -> TransMorphModuleBuilder:
         print(f"learning_rate = {learning_rate}")
         self.hyperparams["learning_rate"] = learning_rate
-        self.config["learning_rate"] = learning_rate
         return self

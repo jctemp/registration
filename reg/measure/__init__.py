@@ -9,7 +9,7 @@ from monai.losses import BendingEnergyLoss
 
 CONFIGS_WAPRED_LOSS = {
     "mse": MSELoss(),
-    "ncc": LocalNormalizedCrossCorrelationLoss(kernel_size=7, spatial_dims=2),
+    "ncc": LocalNormalizedCrossCorrelationLoss(kernel_size=5, spatial_dims=2),
     "gmi": GlobalMutualInformationLoss(),
     "gncc": GlobalNormalizedCrossCorrelationLoss(),
 }
