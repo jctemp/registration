@@ -1,6 +1,4 @@
 import torch
-from monai.utils import LossReduction
-EPS = 1e-8
 
 
 class GlobalNormalizedCrossCorrelationLoss(torch.nn.Module):
@@ -18,41 +16,30 @@ class GlobalNormalizedCrossCorrelationLoss(torch.nn.Module):
     Ported from DeepReg (tf) to torch
     """
 
-    def __init__(
-            self,
-            reduction: LossReduction | str = LossReduction.MEAN,
-    ):
+    def __init__(self):
         """
         Init.
-        reduction: how to reduce the final value
         """
         super().__init__()
-        self.reduction = reduction
+        self.EPS = 1e-8
 
     def forward(self, y_true: torch.Tensor, y_pred: torch.Tensor) -> float:
         """
+        Zero-normalized cross-correlation
         Return loss for a batch.
 
         :param y_true: shape = (batch, ...)
         :param y_pred: shape = (batch, ...)
         :return: shape = (batch, ...)
         """
-        dim = y_pred.shape[1:]
 
-        mu_pred = torch.mean(y_pred, dim=dim, keepdim=True)
-        mu_true = torch.mean(y_true, dim=dim, keepdim=True)
+        mu_pred = torch.mean(y_pred)
+        mu_true = torch.mean(y_true)
 
-        var_pred = torch.var(y_pred, dim=dim)
-        var_true = torch.var(y_true, dim=dim)
+        var_pred = torch.var(y_pred)
+        var_true = torch.var(y_true)
 
-        numerator = torch.mean(torch.abs((y_pred - mu_pred) * (y_true - mu_true)), dim=dim)
+        numerator = torch.mean((y_pred - mu_pred) * (y_true - mu_true))
+        ncc = (numerator * numerator) / (var_pred * var_true + self.EPS)
 
-        ncc = (numerator * numerator + EPS) / (var_pred * var_true + EPS)
-
-        if self.reduction == LossReduction.SUM.value:
-            return torch.sum(ncc).neg()  # sum over the batch and channel ndims
-        if self.reduction == LossReduction.NONE.value:
-            return ncc.neg()
-        if self.reduction == LossReduction.MEAN.value:
-            return torch.mean(ncc).neg()  # average over the batch and channel ndims
-        raise ValueError(f'Unsupported reduction: {self.reduction}, available options are ["mean", "sum", "none"].')
+        return ncc.neg()
