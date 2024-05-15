@@ -59,13 +59,13 @@ class DenseTransform(_Transform):
 
 class CubicBSplineFFDTransform(_Transform):
     def __init__(
-            self,
-            ndim,
-            img_size=(160, 192, 224),
-            cps=(5, 5, 5),
-            svf=False,
-            svf_steps=7,
-            svf_scale=1,
+        self,
+        ndim,
+        img_size=(160, 192, 224),
+        cps=(5, 5, 5),
+        svf=False,
+        svf_steps=7,
+        svf_scale=1,
     ):
         """
         Compute dense displacement field of Cubic B-spline FFD transformation model
@@ -151,7 +151,7 @@ def svf_exp(flow, scale=1, steps=5, sampling="bilinear"):
     """
     Exponential of velocity field by Scaling and Squaring
     """
-    disp = flow * (scale / (2 ** steps))
+    disp = flow * (scale / (2**steps))
     for _ in range(steps):
         disp = disp + warp(x=disp, disp=disp, interp_mode=sampling)
     return disp
@@ -168,7 +168,7 @@ def cubic_bspline_value(x: float, derivative: int = 0) -> float:
     # 0-th order derivative
     if derivative == 0:
         if t < 1:
-            return 2 / 3 + (0.5 * t - 1) * t ** 2
+            return 2 / 3 + (0.5 * t - 1) * t**2
         return -((t - 2) ** 3) / 6
     # 1st order derivative
     if derivative == 1:
@@ -185,7 +185,7 @@ def cubic_bspline_value(x: float, derivative: int = 0) -> float:
 
 
 def cubic_bspline1d(
-        stride, derivative: int = 0, dtype=None, device=None
+    stride, derivative: int = 0, dtype=None, device=None
 ) -> torch.Tensor:
     """Cubic B-spline kernel for specified control point spacing.
     Args:
@@ -210,13 +210,13 @@ def cubic_bspline1d(
 
 
 def conv1d(
-        data: Tensor,
-        kernel: Tensor,
-        dim: int = -1,
-        stride: int = 1,
-        dilation: int = 1,
-        padding: int = 0,
-        transpose: bool = False,
+    data: Tensor,
+    kernel: Tensor,
+    dim: int = -1,
+    stride: int = 1,
+    dilation: int = 1,
+    padding: int = 0,
+    transpose: bool = False,
 ) -> Tensor:
     """
     Convolve data with 1-dimensional kernel along specified dimension.
@@ -263,7 +263,7 @@ def warp(x, disp, interp_mode="bilinear"):
     # generate standard mesh grid
     grid = torch.meshgrid(
         [torch.linspace(-1, 1, size[i]).type_as(disp) for i in range(ndim)],
-        indexing="ij"
+        indexing="ij",
     )
     grid = [grid[i].requires_grad_(False) for i in range(ndim)]
 

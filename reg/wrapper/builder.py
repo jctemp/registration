@@ -3,7 +3,12 @@ from __future__ import annotations
 from typing import Tuple, Any
 import os
 
-from reg.wrapper.model import CONFIGS_OPTIMIZER, TransMorphModule, RegistrationTarget, RegistrationStrategy
+from reg.wrapper.model import (
+    CONFIGS_OPTIMIZER,
+    TransMorphModule,
+    RegistrationTarget,
+    RegistrationStrategy,
+)
 from reg.measure import CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
 
 
@@ -83,8 +88,12 @@ class TransMorphModuleBuilder:
                 for name, weight in self.hyperparams["criteria_flow"]
             ]
 
-            self.model.registration_target_e = RegistrationTarget[self.hyperparams["registration_target"].upper()]
-            self.model.registration_strategy_e = RegistrationStrategy[self.hyperparams["registration_strategy"].upper()]
+            self.model.registration_target_e = RegistrationTarget[
+                self.hyperparams["registration_target"].upper()
+            ]
+            self.model.registration_strategy_e = RegistrationStrategy[
+                self.hyperparams["registration_strategy"].upper()
+            ]
 
             self.model.optimizer_nnf = CONFIGS_OPTIMIZER[self.hyperparams["optimizer"]]
 
@@ -110,8 +119,7 @@ class TransMorphModuleBuilder:
         print(f"criteria_warped = {criteria}")
 
         criteria_warped = [
-            (criteria[i], float(criteria[i + 1]))
-            for i in range(0, len(criteria), 2)
+            (criteria[i], float(criteria[i + 1])) for i in range(0, len(criteria), 2)
         ]
 
         self.hyperparams["criteria_warped"] = criteria_warped
@@ -129,8 +137,7 @@ class TransMorphModuleBuilder:
         print(f"criteria_flow = {criteria}")
 
         criteria_flow = [
-            (criteria[i], float(criteria[i + 1]))
-            for i in range(0, len(criteria), 2)
+            (criteria[i], float(criteria[i + 1])) for i in range(0, len(criteria), 2)
         ]
 
         self.hyperparams["criteria_flow"] = criteria_flow
@@ -158,7 +165,9 @@ class TransMorphModuleBuilder:
             print(f"registration_depth = {registration_depth}")
             self.hyperparams["registration_depth"] = registration_depth
         else:
-            print("WARN: Cannot change registration_depth as it is a ckpt. Indirectly affects network.")
+            print(
+                "WARN: Cannot change registration_depth as it is a ckpt. Indirectly affects network."
+            )
         return self
 
     def set_registration_stride(

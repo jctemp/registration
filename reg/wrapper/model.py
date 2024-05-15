@@ -32,17 +32,17 @@ class RegistrationStrategy(Enum):
 
 class TransMorphModule(pl.LightningModule):
     def __init__(
-            self,
-            network: str,
-            criteria_warped: List[Tuple[str, float]],
-            criteria_flow: List[Tuple[str, float]],
-            registration_target: str,
-            registration_strategy: str,
-            registration_depth: int,
-            registration_stride: int,
-            identity_loss: bool,
-            optimizer: str,
-            learning_rate: float,
+        self,
+        network: str,
+        criteria_warped: List[Tuple[str, float]],
+        criteria_flow: List[Tuple[str, float]],
+        registration_target: str,
+        registration_strategy: str,
+        registration_depth: int,
+        registration_stride: int,
+        identity_loss: bool,
+        optimizer: str,
+        learning_rate: float,
     ):
         super().__init__()
 
@@ -57,8 +57,17 @@ class TransMorphModule(pl.LightningModule):
         self.optimizer = optimizer
         self.learning_rate = learning_rate
 
-        self.save_hyperparameters(ignore=["net", "criteria_warped_nnf", "criteria_flow_nnf", "optimizer_nnf",
-                                          "registration_target_e", "registration_strategy_e", "stn"])
+        self.save_hyperparameters(
+            ignore=[
+                "net",
+                "criteria_warped_nnf",
+                "criteria_flow_nnf",
+                "optimizer_nnf",
+                "registration_target_e",
+                "registration_strategy_e",
+                "stn",
+            ]
+        )
 
         config = CONFIG_TM[self.network]
         config.img_size = (
@@ -76,17 +85,17 @@ class TransMorphModule(pl.LightningModule):
         )
 
         self.criteria_warped_nnf = [
-            (CONFIGS_WAPRED_LOSS[name], weight)
-            for name, weight in criteria_warped
+            (CONFIGS_WAPRED_LOSS[name], weight) for name, weight in criteria_warped
         ]
 
         self.criteria_flow_nnf = [
-            (CONFIGS_FLOW_LOSS[name], weight)
-            for name, weight in criteria_flow
+            (CONFIGS_FLOW_LOSS[name], weight) for name, weight in criteria_flow
         ]
 
         self.registration_target_e = RegistrationTarget[registration_target.upper()]
-        self.registration_strategy_e = RegistrationStrategy[registration_strategy.upper()]
+        self.registration_strategy_e = RegistrationStrategy[
+            registration_strategy.upper()
+        ]
 
         self.optimizer_nnf = CONFIGS_OPTIMIZER[optimizer]
 
@@ -153,8 +162,8 @@ class TransMorphModule(pl.LightningModule):
             warped, flow = self.net(in_series)
 
             # Assign the result to the corresponding segment
-            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
-            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
+            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1 :]
+            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1 :]
 
             del warped, flow, in_series
 
@@ -182,11 +191,15 @@ class TransMorphModule(pl.LightningModule):
         step = image_range / num_bins
 
         # Assign images to bins
-        image_bins = torch.tensor([compute_image_bin(image_mean, step, step) for image_mean in image_means],
-                                  device=series.device)
+        image_bins = torch.tensor(
+            [compute_image_bin(image_mean, step, step) for image_mean in image_means],
+            device=series.device,
+        )
 
         # Pre-allocate memory for flow series
-        flow_series = torch.zeros((series.shape[0], 2, *(series.shape[2:])), device=series.device)
+        flow_series = torch.zeros(
+            (series.shape[0], 2, *(series.shape[2:])), device=series.device
+        )
 
         # Intragroup processing
         avg_group_images = []
@@ -214,7 +227,11 @@ class TransMorphModule(pl.LightningModule):
             del warped, fixed, flow
 
         # Intergroup processing
-        group_series = torch.cat([avg_group_images[len(avg_group_images) // 2].unsqueeze(-1)] + avg_group_images, dim=-1)
+        group_series = torch.cat(
+            [avg_group_images[len(avg_group_images) // 2].unsqueeze(-1)]
+            + avg_group_images,
+            dim=-1,
+        )
         warped, flow, fixed = self._segment_registration(group_series)
         del warped, fixed
 
@@ -295,7 +312,9 @@ class TransMorphModule(pl.LightningModule):
 
         fixed_np = fixed.detach().cpu().numpy()[0, :, :, :]
         flow_np = flow.detach().cpu().numpy()[0, :, :, :, :]
-        jac_det_list = [jacobian_det(flow_np[:, :, :, i]) for i in range(flow_np.shape[-1])]
+        jac_det_list = [
+            jacobian_det(flow_np[:, :, :, i]) for i in range(flow_np.shape[-1])
+        ]
         perc_neg_jac_det_list = [
             np.sum(jac_det <= 0) / np.prod(fixed_np.shape) for jac_det in jac_det_list
         ]
