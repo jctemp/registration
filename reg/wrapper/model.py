@@ -10,6 +10,7 @@ import torch
 from reg.transmorph.configs import CONFIG_TM
 from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
+from reg.transmorph.modules.spatial_transformer import SpatialTransformerSeries
 from reg.measure import jacobian_det, CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
 
 CONFIGS_OPTIMIZER = {
@@ -57,13 +58,15 @@ class TransMorphModule(pl.LightningModule):
         self.learning_rate = learning_rate
 
         self.save_hyperparameters(ignore=["net", "criteria_warped_nnf", "criteria_flow_nnf", "optimizer_nnf",
-                                          "registration_target_e", "registration_strategy_e"])
+                                          "registration_target_e", "registration_strategy_e", "stn"])
 
         config = CONFIG_TM[self.network]
         config.img_size = (
             *config.img_size[:-1],
             self.registration_depth,
         )
+
+        self.stn = SpatialTransformerSeries(config.img_size)
 
         descriptors = self.network.split("-")
         self.net = (
@@ -160,7 +163,70 @@ class TransMorphModule(pl.LightningModule):
         return warped_series, flow_series, fixed
 
     def _group_registration(self, series):
-        raise NotImplementedError()
+        image_means = torch.mean(series, keepdim=-1)
+        image_means = torch.sort(image_means)
+        image_range = torch.max(image_means) - torch.min(image_means)
+
+        def compute_image_bin(curr_mean, curr_higher_lim, bin_step) -> int:
+            bin_index = 0
+            while curr_mean >= curr_higher_lim:
+                bin_index += 1
+                curr_higher_lim += bin_step
+            return bin_index
+
+        num_bins = 9  # has to be uneven
+        step = image_range / num_bins
+
+        image_bins = torch.tensor([compute_image_bin(image_mean, step, step) for image_mean in image_means],
+                                  device=series.device)
+
+        # Pre-allocate memory for data concatenation
+        flow_series = torch.zeros((series.shape[0], 2, *(series.shape[2:])), device=series.device)
+
+        # 1. intragroup
+        avg_group_images = []
+        series_fixed = None
+        for image_bin in range(0, num_bins):
+            group = series[image_bins == image_bin]
+            group_mean = torch.mean(image_means[image_bins == image_bin])
+            group_mid = group[0]
+
+            for group_image in group:
+                mid_diff = torch.abs(group_mean - group_mid)
+                cur_diff = torch.abs(group_mean - group_image)
+                if cur_diff < mid_diff:
+                    group_mid = group_image
+
+            if image_bin == len(avg_group_images) // 2:
+                series_fixed = group_mid
+
+            group_series = torch.cat([group_mid, group], dim=-1)
+            warped, flow, fixed = self._segment_registration(group_series)
+
+            flow_series[image_bins == image_bin] = flow
+            avg_group_images.append(torch.mean(warped, dim=-1))
+
+            del warped, fixed, flow
+
+        # 2. intergroup
+        group_series = torch.cat([avg_group_images[len(avg_group_images) // 2]] + avg_group_images, dim=-1)
+        warped, flow, fixed = self._segment_registration(group_series)
+        del warped, fixed
+
+        for image_bin in range(0, num_bins):
+            if image_bin == len(avg_group_images) // 2:
+                continue
+            flow_series[image_bins == image_bin] += flow[image_bin]
+        del flow, image_means, image_bins
+
+        # 3. apply newly computed warp
+        warped_series = self.stn(series, flow_series)
+
+        # Clean all de-referenced data
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        return warped_series, flow_series, series_fixed
 
     def extract_fixed_image(self, series: torch.Tensor):
         if self.registration_target_e == RegistrationTarget.LAST:
