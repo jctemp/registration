@@ -111,12 +111,16 @@ class TransMorphModule(pl.LightningModule):
         return loss
 
     def _segment_registration(self, series):
-        # Prepare to process series
+        """
+        Segment-wise registration of a series of images.
+        """
+
+        # Extract fixed image and prepare for processing
         fixed = self.extract_fixed_image(series).unsqueeze(-1)
         stride = self.registration_depth - 1
         max_depth = series.shape[-1]
 
-        # Series is smaller than TransMorph input => padding
+        # Handle cases where series is smaller than the required input size
         if max_depth < stride:
             padding = stride - max_depth
             zeros = torch.zeros((*(series.shape[:-1]), padding), device=series.device)
@@ -125,24 +129,21 @@ class TransMorphModule(pl.LightningModule):
 
             del series, zeros, in_series
 
-            gc.collect()
-            torch.cuda.empty_cache()
-
             return warped, flow
 
-        # Pre-allocate memory for data concatenation
+        # Pre-allocate memory for output series
         warped_shape = (*(series.shape[:-1]), max_depth)
         warped_series = torch.zeros(warped_shape, device=series.device)
 
         flow_shape = (series.shape[0], 2, *(series.shape[2:-1]), max_depth)
         flow_series = torch.zeros(flow_shape, device=series.device)
 
-        # Process series in segments
+        # Process the series in segments
         for idx_start in range(0, max_depth, stride):
             idx_end = idx_start + stride
             shift = 0
 
-            # Need to shift to have a valid series input, avoiding zero padding
+            # Adjust indices if segment exceeds the series depth
             if idx_end > max_depth:
                 shift = idx_end - max_depth
                 idx_start -= shift
@@ -151,19 +152,22 @@ class TransMorphModule(pl.LightningModule):
             in_series = torch.cat([fixed, series[..., idx_start:idx_end]], dim=-1)
             warped, flow = self.net(in_series)
 
-            # Note: we need to shift by one to exclude fixed
+            # Assign the result to the corresponding segment
             warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
             flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
-            del warped, flow, in_series
 
-        # Clean all de-referenced data
-        gc.collect()
-        torch.cuda.empty_cache()
+            del warped, flow, in_series
 
         return warped_series, flow_series, fixed
 
     def _group_registration(self, series):
-        image_means = torch.mean(series, keepdim=-1)
+        """
+        Group-based registration of a series of images.
+        https://onlinelibrary.wiley.com/doi/epdf/10.1002/mrm.26526
+        """
+
+        # Calculate mean intensities and sort them
+        image_means = torch.mean(series, dim=-1)
         image_means = torch.sort(image_means)
         image_range = torch.max(image_means) - torch.min(image_means)
 
@@ -174,16 +178,17 @@ class TransMorphModule(pl.LightningModule):
                 curr_higher_lim += bin_step
             return bin_index
 
-        num_bins = 9  # has to be uneven
+        num_bins = 9  # Number of bins (must be odd)
         step = image_range / num_bins
 
+        # Assign images to bins
         image_bins = torch.tensor([compute_image_bin(image_mean, step, step) for image_mean in image_means],
                                   device=series.device)
 
-        # Pre-allocate memory for data concatenation
+        # Pre-allocate memory for flow series
         flow_series = torch.zeros((series.shape[0], 2, *(series.shape[2:])), device=series.device)
 
-        # 1. intragroup
+        # Intragroup processing
         avg_group_images = []
         series_fixed = None
         for image_bin in range(0, num_bins):
@@ -208,8 +213,8 @@ class TransMorphModule(pl.LightningModule):
 
             del warped, fixed, flow
 
-        # 2. intergroup
-        group_series = torch.cat([avg_group_images[len(avg_group_images) // 2]] + avg_group_images, dim=-1)
+        # Intergroup processing
+        group_series = torch.cat([avg_group_images[len(avg_group_images) // 2].unsqueeze(-1)] + avg_group_images, dim=-1)
         warped, flow, fixed = self._segment_registration(group_series)
         del warped, fixed
 
@@ -219,12 +224,8 @@ class TransMorphModule(pl.LightningModule):
             flow_series[image_bins == image_bin] += flow[image_bin]
         del flow, image_means, image_bins
 
-        # 3. apply newly computed warp
+        # Apply newly computed warp
         warped_series = self.stn(series, flow_series)
-
-        # Clean all de-referenced data
-        gc.collect()
-        torch.cuda.empty_cache()
 
         return warped_series, flow_series, series_fixed
 
