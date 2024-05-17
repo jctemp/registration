@@ -149,13 +149,16 @@ class TransMorphModuleBuilder:
     ) -> TransMorphModuleBuilder:
         print(f"registration_strategy = {registration_strategy}")
         self.hyperparams["registration_strategy"] = registration_strategy
+        if self.hyperparams["registration_strategy"] == "goreg":
+            self.hyperparams["registration_target"] = "mean"
         return self
 
     def set_registration_target(
         self, registration_target: str
     ) -> TransMorphModuleBuilder:
+        is_goreg = self.hyperparams["registration_strategy"] == "goreg"
+        self.hyperparams["registration_target"] = "mean" if is_goreg else registration_target
         print(f"registration_strategy = {registration_target}")
-        self.hyperparams["registration_target"] = registration_target
         return self
 
     def set_registration_depth(
