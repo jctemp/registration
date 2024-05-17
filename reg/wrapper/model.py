@@ -8,8 +8,9 @@ import pytorch_lightning as pl
 import torch
 
 from reg.transmorph.configs import CONFIG_TM
-from reg.transmorph.transmorph_bayes import TransMorphBayes
 from reg.transmorph.transmorph import TransMorph
+from reg.transmorph.transmorph_bayes import TransMorphBayes
+from reg.transmorph.transmorph_identity import TransMorphIdentity
 from reg.transmorph.modules.spatial_transformer import SpatialTransformerSeries
 from reg.measure import jacobian_det, CONFIGS_WAPRED_LOSS, CONFIGS_FLOW_LOSS
 
@@ -66,11 +67,12 @@ class TransMorphModule(pl.LightningModule):
         self.stn = SpatialTransformerSeries((*config.img_size[:-1], 32))
 
         descriptors = self.network.split("-")
-        self.net = (
-            TransMorphBayes(config)
-            if len(descriptors) > 1 and descriptors[1] == "bayes"
-            else TransMorph(config)
-        )
+        if len(descriptors) > 1 and descriptors[1] == "bayes":
+            self.net = TransMorphBayes(config)
+        elif len(descriptors) > 1 and descriptors[1] == "identity":
+            self.net = TransMorphIdentity(config)
+        else:
+            self.net = TransMorph(config)
 
         self.criteria_warped_nnf = [
             (CONFIGS_WAPRED_LOSS[name], weight) for name, weight in criteria_warped
