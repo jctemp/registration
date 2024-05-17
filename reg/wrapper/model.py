@@ -33,17 +33,17 @@ class RegistrationStrategy(Enum):
 
 class TransMorphModule(pl.LightningModule):
     def __init__(
-        self,
-        network: str,
-        criteria_warped: List[Tuple[str, float]],
-        criteria_flow: List[Tuple[str, float]],
-        registration_target: str,
-        registration_strategy: str,
-        registration_depth: int,
-        registration_stride: int,
-        identity_loss: bool,
-        optimizer: str,
-        learning_rate: float,
+            self,
+            network: str,
+            criteria_warped: List[Tuple[str, float]],
+            criteria_flow: List[Tuple[str, float]],
+            registration_target: str,
+            registration_strategy: str,
+            registration_depth: int,
+            registration_stride: int,
+            identity_loss: bool,
+            optimizer: str,
+            learning_rate: float,
     ):
         super().__init__()
 
@@ -124,6 +124,50 @@ class TransMorphModule(pl.LightningModule):
             loss *= weight
         return loss
 
+    def _single_segment_registration(self, series, fixed=None):
+        """
+        Single segment registration of a series of images.
+        """
+
+        # Extract fixed image and prepare for processing
+        if fixed is None:
+            fixed = self.extract_fixed_image(series).unsqueeze(-1)
+        stride = self.registration_depth - 1
+        max_depth = series.shape[-1] if series.shape[-1] < stride else stride
+
+        # Pre-allocate memory for output series
+        warped_shape = (*(series.shape[:-1]), max_depth)
+        warped_series = torch.zeros(warped_shape, device=series.device)
+
+        flow_shape = (series.shape[0], 2, *(series.shape[2:-1]), max_depth)
+        flow_series = torch.zeros(flow_shape, device=series.device)
+
+        # Handle cases where series is smaller than the required input size
+        if max_depth < stride:
+            padding = stride - max_depth
+            zeros = torch.zeros((*(series.shape[:-1]), padding), device=series.device)
+            in_series = torch.cat([fixed, series, zeros], dim=-1)
+            warped, flow = self.net(in_series)
+
+            warped_series[..., :] = warped[..., 1:max_depth + 1]
+            flow_series[..., :] = flow[..., 1:max_depth + 1]
+
+            del series, zeros, in_series, warped, flow
+
+            return warped_series, flow_series, fixed
+
+        shift = np.random.randint(0, max_depth - stride)
+        in_series = torch.cat([fixed, series[..., shift:shift + stride]], dim=-1)
+        warped, flow = self.net(in_series)
+
+        # Assign the result to the corresponding segment
+        warped_series[..., :] = warped[..., 1:]
+        flow_series[..., :] = flow[..., 1:]
+
+        del warped, flow, in_series
+
+        return warped_series, flow_series, fixed
+
     def _segment_registration(self, series, fixed=None):
         """
         Segment-wise registration of a series of images.
@@ -149,8 +193,8 @@ class TransMorphModule(pl.LightningModule):
             in_series = torch.cat([fixed, series, zeros], dim=-1)
             warped, flow = self.net(in_series)
 
-            warped_series[..., :] = warped[..., 1 :max_depth+1]
-            flow_series[..., :] = flow[..., 1 :max_depth+1]
+            warped_series[..., :] = warped[..., 1:max_depth + 1]
+            flow_series[..., :] = flow[..., 1:max_depth + 1]
 
             del series, zeros, in_series, warped, flow
 
@@ -171,8 +215,8 @@ class TransMorphModule(pl.LightningModule):
             warped, flow = self.net(in_series)
 
             # Assign the result to the corresponding segment
-            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1 :]
-            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1 :]
+            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
+            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
 
             del warped, flow, in_series
 
@@ -244,8 +288,8 @@ class TransMorphModule(pl.LightningModule):
 
         # Apply newly computed warp
         for k in range(0, series.shape[-1], 32):
-            warped_series_seg = self.stn(series[..., k:k+32], flow_series[..., k:k+32])
-            warped_series[..., k:k+32] = warped_series_seg
+            warped_series_seg = self.stn(series[..., k:k + 32], flow_series[..., k:k + 32])
+            warped_series[..., k:k + 32] = warped_series_seg
             del warped_series_seg
 
         gc.collect()
@@ -269,7 +313,9 @@ class TransMorphModule(pl.LightningModule):
                 f"strategy has to be last or mean, was {self.registration_target_e.name.lower()}"
             )
 
-    def forward(self, series: torch.Tensor):
+    def forward(self, series: torch.Tensor, training=False):
+        if training and self.registration_strategy_e == RegistrationStrategy.SOREG:
+            return self._single_segment_registration(series)
         if self.registration_strategy_e == RegistrationStrategy.SOREG:
             return self._segment_registration(series)
         elif self.registration_strategy_e == RegistrationStrategy.GOREG:
@@ -287,7 +333,7 @@ class TransMorphModule(pl.LightningModule):
         if self.identity_loss:
             max_depth_transmorph: int = self.net.transformer.img_size[-1] - 1
             in_series = torch.repeat_interleave(fixed, max_depth_transmorph, dim=-1)
-            warped, flow, _ = self(in_series)
+            warped, flow, _ = self.forward(in_series, training=True)
 
             loss += self._compute_warped_loss(warped, fixed)
             del warped, flow, in_series
