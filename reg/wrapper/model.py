@@ -156,7 +156,7 @@ class TransMorphModule(pl.LightningModule):
 
             return warped_series, flow_series, fixed
 
-        shift = np.random.randint(0, max_depth - stride)
+        shift = np.random.randint(0, series.shape[-1] - stride)
         in_series = torch.cat([fixed, series[..., shift:shift + stride]], dim=-1)
         warped, flow = self.net(in_series)
 
