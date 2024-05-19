@@ -323,7 +323,7 @@ class TransMorphModule(pl.LightningModule):
         raise ValueError(f"Invalid strategy {self.registration_strategy_e}")
 
     def training_step(self, batch, **kwargs: Any) -> float:
-        warped, flow, fixed = self(batch)
+        warped, flow, fixed = self.forward(batch, training=True)
 
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
