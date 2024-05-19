@@ -104,8 +104,9 @@ def main():
         )
 
         torch.set_float32_matmul_precision("high")
-        print(f"{'=' * 5} Training {'=' * 105}")
-        trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
+        if args.network != "transmorph-identity":
+            print(f"{'=' * 5} Training {'=' * 105}")
+            trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
         print(f"{'=' * 5} Testing {'=' * 106}")
         trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
         print("=" * 120)
