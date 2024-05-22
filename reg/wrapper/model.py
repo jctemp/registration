@@ -314,6 +314,9 @@ class TransMorphModule(pl.LightningModule):
             )
 
     def forward(self, series: torch.Tensor, training=False):
+        if training:
+            series = series[..., ::self.registration_stride]
+
         if training and self.registration_strategy_e == RegistrationStrategy.SOREG:
             return self._single_segment_registration(series)
         if self.registration_strategy_e == RegistrationStrategy.SOREG:
