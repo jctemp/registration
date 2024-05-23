@@ -24,6 +24,7 @@ class TransMorphModuleBuilder:
             "registration_strategy": "soreg",
             "registration_depth": 32,
             "registration_stride": 1,
+            "registration_sampling": 1,
             "identity_loss": False,
             "optimizer": "adam",
             "learning_rate": 1e-4,
@@ -51,6 +52,9 @@ class TransMorphModuleBuilder:
         builder.hyperparams["optimizer"] = builder.model.optimizer
         builder.hyperparams["learning_rate"] = builder.model.learning_rate
 
+        # v4 weight addition
+        builder.hyperparams["registration_sampling"] = builder.model.registration_sampling if strict else 1
+
         return builder
 
     def build(self) -> Tuple[TransMorphModule, dict]:
@@ -63,6 +67,7 @@ class TransMorphModuleBuilder:
                 registration_strategy=self.hyperparams["registration_strategy"],
                 registration_depth=self.hyperparams["registration_depth"],
                 registration_stride=self.hyperparams["registration_stride"],
+                registration_sampling=self.hyperparams["registration_sampling"],
                 identity_loss=self.hyperparams["identity_loss"],
                 optimizer=self.hyperparams["optimizer"],
                 learning_rate=self.hyperparams["learning_rate"],
@@ -76,6 +81,7 @@ class TransMorphModuleBuilder:
             self.model.criteria_flow = self.hyperparams["criteria_flow"]
             self.model.registration_target = self.hyperparams["registration_target"]
             self.model.registration_strategy = self.hyperparams["registration_strategy"]
+            self.model.registration_sampling = self.hyperparams["registration_sampling"],
             self.model.optimizer = self.hyperparams["optimizer"]
 
             self.model.criteria_warped_nnf = [
@@ -109,7 +115,7 @@ class TransMorphModuleBuilder:
         return self
 
     def set_criteria_warped(
-        self, criteria_warped: str | list[tuple[str, float]]
+            self, criteria_warped: str | list[tuple[str, float]]
     ) -> TransMorphModuleBuilder:
         if isinstance(criteria_warped, str):
             criteria = criteria_warped.split("-")
@@ -127,7 +133,7 @@ class TransMorphModuleBuilder:
         return self
 
     def set_criteria_flow(
-        self, criteria_flow: str | list[tuple[str, float]]
+            self, criteria_flow: str | list[tuple[str, float]]
     ) -> TransMorphModuleBuilder:
         if isinstance(criteria_flow, str):
             criteria = criteria_flow.split("-")
@@ -145,7 +151,7 @@ class TransMorphModuleBuilder:
         return self
 
     def set_registration_strategy(
-        self, registration_strategy: str
+            self, registration_strategy: str
     ) -> TransMorphModuleBuilder:
         print(f"registration_strategy = {registration_strategy}")
         self.hyperparams["registration_strategy"] = registration_strategy
@@ -154,7 +160,7 @@ class TransMorphModuleBuilder:
         return self
 
     def set_registration_target(
-        self, registration_target: str
+            self, registration_target: str
     ) -> TransMorphModuleBuilder:
         is_goreg = self.hyperparams["registration_strategy"] == "goreg"
         self.hyperparams["registration_target"] = "mean" if is_goreg else registration_target
@@ -162,7 +168,7 @@ class TransMorphModuleBuilder:
         return self
 
     def set_registration_depth(
-        self, registration_depth: int
+            self, registration_depth: int
     ) -> TransMorphModuleBuilder:
         if not self.is_ckpt:
             print(f"registration_depth = {registration_depth}")
@@ -174,10 +180,15 @@ class TransMorphModuleBuilder:
         return self
 
     def set_registration_stride(
-        self, registration_stride: int
+            self, registration_stride: int
     ) -> TransMorphModuleBuilder:
         print(f"registration_stride = {registration_stride}")
         self.hyperparams["registration_stride"] = registration_stride
+        return self
+
+    def set_registration_sampling(self, registration_sampling: int) -> TransMorphModuleBuilder:
+        print(f"registration_sampling = {registration_sampling}")
+        self.hyperparams["registration_sampling"] = registration_sampling
         return self
 
     def set_identity_loss(self, identity_loss: bool) -> TransMorphModuleBuilder:

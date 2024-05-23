@@ -84,6 +84,13 @@ def create_parser() -> argparse.ArgumentParser:
         help="defines how to subsample temporal dimension",
     )
     parser_train.add_argument(
+        "--registration_sampling",
+        type=int,
+        default=1,
+        help="chunk series during training or only present n samples; zero means chunking",
+        choices=range(0, 9)
+    )
+    parser_train.add_argument(
         "--identity_loss",
         action="store_true",
         help="consider target image deformation",

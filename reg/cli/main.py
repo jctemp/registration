@@ -31,7 +31,7 @@ def main():
             if args.resume
             else TransMorphModuleBuilder()
         )
-        if args.resume is None:
+        if args.resume:
             (
                 builder.set_network(args.network)
                 .set_criteria_warped(args.criteria_warped)
@@ -40,6 +40,7 @@ def main():
                 .set_registration_target(args.registration_target)
                 .set_registration_depth(args.registration_depth)
                 .set_registration_stride(args.registration_stride)
+                .set_registration_sampling(args.registration_sampling)
                 .set_identity_loss(args.identity_loss)
                 .set_optimizer(args.optimizer)
                 .set_learning_rate(args.learning_rate)
@@ -57,10 +58,10 @@ def main():
         run = (
             f"network_{args.network}.criteria-warped_{args.criteria_warped}.criteria-flow_{args.criteria_flow}."
             f"reg-strategy_{args.registration_strategy}.reg-target_{args.registration_target}."
-            f"reg-depth_{args.registration_depth}.ident-loss_{args.identity_loss}.optimizer_{args.optimizer}."
-            f"learning-rate_{args.learning_rate:.0E}"
+            f"reg-depth_{args.registration_depth}.reg-sampling_{args.registration_sampling}."
+            f"ident-loss_{args.identity_loss}.optimizer_{args.optimizer}.learning-rate_{args.learning_rate:.0E}"
         )
-        run_path = f"model_weights_v3/{run}"
+        run_path = f"model_weights_v4/{run}"
         print(f"Model weights are found in {run_path}")
 
         if args.log:
@@ -113,6 +114,7 @@ def main():
 
     elif args.command == "pred":
         model, config = TransMorphModuleBuilder.from_ckpt(args.ckpt).build()
+
         print(f"{'=' * 5} Configuration summary {'=' * 92}")
         print(f"")
         for key, value in config.items():
@@ -120,5 +122,15 @@ def main():
         print(f"")
         print("=" * 120)
 
-        # TODO: add output path to arguments
         raise RuntimeError("Prediction not implemented.")
+
+        # TODO: load .mat file
+
+        # TODO: apply data preprocessing
+
+        # TODO: make prediction
+
+        # TODO: run STN with flow and input mat
+
+        # TODO: save warped series to output path
+

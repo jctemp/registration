@@ -68,6 +68,13 @@ parser.add_argument(
     choices=range(32, 256, 32),
 )
 parser.add_argument(
+    "--registration_sampling",
+    type=int,
+    default=1,
+    help="chunk series during training or only present n samples; zero means chunking",
+    choices=range(0, 9)
+)
+parser.add_argument(
     "--identity_loss",
     action="store_true",
     help="consider target image deformation",
