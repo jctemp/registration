@@ -9,7 +9,7 @@ from pathlib import Path
 
 from reg.data import LungDataModule
 from reg.transmorph.wrapper import TransMorphModule
-from reg.cli.utils import deserialize_toml
+from reg.cli.utils import deserialize_toml, serialize_data
 
 
 def main(args):
@@ -22,8 +22,10 @@ def main(args):
     path = Path(args.file)
     training_type = path.suffix[1:].upper()
 
+    config = None
     if training_type == "TOML":
         config = deserialize_toml(str(path.absolute()))
+
         model = TransMorphModule(
             network=config["network"],
             criteria_warped=config["criteria_warped"],
@@ -46,7 +48,7 @@ def main(args):
         print("=" * 120)
 
         ident = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
-        name = f"{config.network}-{subdirectory}-{ident}"
+        name = f"{config['network']}-{subdirectory}-{ident}"
         wandb_logger = pll.WandbLogger(
             save_dir="logs", project="lung-registration", config=config, name=name
         )
@@ -109,3 +111,6 @@ def main(args):
 
     trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
     print("=" * 120)
+
+    if config:
+        serialize_data(config, str(run_directory / "config.toml"))
