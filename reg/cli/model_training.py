@@ -72,7 +72,7 @@ def main(args):
         exit(1)
 
     wandb_logger.watch(model)
-    run_path = run_directory / wandb_logger.name
+    run_path = run_directory / wandb_logger.version
     print(f"Model weights are found in {run_path}")
 
     checkpoint_callback = plc.ModelCheckpoint(
