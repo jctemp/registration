@@ -24,7 +24,6 @@ def run_process(command):
 
 
 def build_job(job_config, header, body, args):
-
     if not os.path.exists("./tmp"):
         os.mkdir("./tmp")
 
@@ -54,11 +53,11 @@ def build_job(job_config, header, body, args):
         print(stderr)
         exit(1)
 
-    script = header + f"""
-    #SBATCH --output={dir_path / 'out.txt'}
-    #SBATCH --error={dir_path / 'err.txt'}
-
-    """ + body + f"python -m reg train {config_path} --epochs {args.epochs} "
+    script = (header +
+              f"#SBATCH --output={dir_path / 'out.txt'}" +
+              f"#SBATCH --error={dir_path / 'err.txt'}" +
+              body +
+              f"python -m reg train {config_path} --epochs {args.epochs} ")
 
     if args.weight_directory:
         script += f"--weight_directory {args.weight_directory}"
@@ -75,25 +74,20 @@ def build_job(job_config, header, body, args):
 
 
 def main(args):
-    header = f"""#!/bin/bash
-    #SBATCH --job-name=registration_job_gpu
-    #SBATCH --mail-user=jamie.temple@stud.hs-hannover.de
-    #SBATCH --mail-type=ALL
-    #SBATCH --time=7-00:00:00
-    #
-    #SBATCH --partition leinegpu_long
-    #SBATCH --nodelist leinewra100
-    #SBATCH --cpus-per-task={args.cpu}
-    #SBATCH --mem={args.mem}GB
-    #SBATCH --gres=gpu:{args.gpu}
-    #
-    """
+    header = (f"#!/bin/bash\n"
+              f"#SBATCH --job-name=registration_job_gpu\n"
+              f"#SBATCH --mail-user=jamie.temple@stud.hs-hannover.de\n"
+              f"#SBATCH --mail-type=ALL\n"
+              f"#SBATCH --time=7-00:00:00\n"
+              f"#SBATCH --partition leinegpu_long\n"
+              f"#SBATCH --nodelist leinewra100\n"
+              f"#SBATCH --cpus-per-task={args.cpu}\n"
+              f"#SBATCH --mem={args.mem}GB\n"
+              f"#SBATCH --gres=gpu:{args.gpu}\n\n")
 
-    body = f"""
-    module load Python/3.10.4
-    cd /hpc/scratch/project/jvc-lab/stud/registration
-    source ./.venv/bin/activate
-    """
+    body = ("module load Python/3.10.4\n"
+            "cd /hpc/scratch/project/jvc-lab/stud/registration\n"
+            "source ./.venv/bin/activate\n\n")
 
     file = Path(args.file)
     suffix = file.suffix[1:].upper()
