@@ -103,7 +103,7 @@ def main(args):
         num_workers=n_available_cores,
     )
 
-    if args.network != "transmorph-identity":
+    if model.network != "transmorph-identity":
         print(f"{'=' * 5} Training {'=' * 105}")
         trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
 
