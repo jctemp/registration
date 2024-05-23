@@ -105,11 +105,11 @@ def main(args):
 
     if model.network != "transmorph-identity":
         print(f"{'=' * 5} Training {'=' * 105}")
-        trainer.fit(model, datamodule=datamodule, ckpt_path=args.resume)
+        trainer.fit(model, datamodule=datamodule)
 
     print(f"{'=' * 5} Testing {'=' * 106}")
 
-    trainer.test(model, datamodule=datamodule, ckpt_path=args.resume)
+    trainer.test(model, datamodule=datamodule)
     print("=" * 120)
 
     if config:

@@ -57,7 +57,7 @@ def build_job(job_config, header, body, args):
               f"#SBATCH --output={dir_path / 'out.txt'}" +
               f"#SBATCH --error={dir_path / 'err.txt'}" +
               body +
-              f"python -m reg train {config_path} --epochs {args.epochs} ")
+              f"python -m reg train {config_path} --epochs {args.epochs} --weight_directory {args.weight_directory}")
 
     if args.weight_directory:
         script += f"--weight_directory {args.weight_directory}"
