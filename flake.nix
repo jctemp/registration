@@ -76,6 +76,7 @@
           pythonPackages.pydicom
           pythonPackages.pylint
           pythonPackages.rich
+          pythonPackages.tomlkit
 
           # ML
           pythonCudaPackages.torch-bin

@@ -1,6 +1,5 @@
 from enum import Enum
 from typing import Any, Tuple, List, Mapping
-import gc
 
 import monai.metrics
 import numpy as np
@@ -31,23 +30,30 @@ class RegistrationStrategy(Enum):
     GOREG = 1
 
 
+class STN:
+    def __init__(self, net, stride):
+        self.net = net
+        self.stride = stride
+
+
 class TransMorphModule(pl.LightningModule):
     def __init__(
             self,
-            network: str,
-            criteria_warped: List[Tuple[str, float]],
-            criteria_flow: List[Tuple[str, float]],
-            registration_target: str,
-            registration_strategy: str,
-            registration_depth: int,
-            registration_stride: int,
-            registration_sampling: int,
-            identity_loss: bool,
-            optimizer: str,
-            learning_rate: float,
+            network: str = "transmorph",
+            criteria_warped: List[Tuple[str, float]] = tuple([("mse", 1.0)]),
+            criteria_flow: List[Tuple[str, float]] = tuple([("gl2d", 1.0)]),
+            registration_target: str = "last",
+            registration_strategy: str = "soreg",
+            registration_depth: int = 32,
+            registration_stride: int = 1,
+            registration_sampling: int = 0,
+            identity_loss: bool = False,
+            optimizer: str = "adam",
+            learning_rate: float = 1e-4,
     ):
         super().__init__()
 
+        # Hyperparameters (tracked)
         self.network = network
         self.criteria_warped = criteria_warped
         self.criteria_flow = criteria_flow
@@ -59,16 +65,25 @@ class TransMorphModule(pl.LightningModule):
         self.identity_loss = identity_loss
         self.optimizer = optimizer
         self.learning_rate = learning_rate
+        self.id = None
 
-        config = CONFIG_TM[self.network]
+        # Derived parameters (untracked)
+        self.net = None
+        self.stn = None
+        self.criteria_warped_nnf = None
+        self.criteria_flow_nnf = None
+        self.registration_strategy_e = None
+        self.registration_target_e = None
+        self.optimizer_nnf = None
+
+        # Section 1: Network
+        config = CONFIG_TM[network]
         config.img_size = (
             *config.img_size[:-1],
             self.registration_depth,
         )
 
-        self.stn = SpatialTransformerSeries((*config.img_size[:-1], 32))
-
-        descriptors = self.network.split("-")
+        descriptors = network.split("-")
         if len(descriptors) > 1 and descriptors[1] == "bayes":
             self.net = TransMorphBayes(config)
         elif len(descriptors) > 1 and descriptors[1] == "identity":
@@ -76,6 +91,9 @@ class TransMorphModule(pl.LightningModule):
         else:
             self.net = TransMorph(config)
 
+        self.stn = STN(SpatialTransformerSeries((*config.img_size[:-1], 32)), 32)
+
+        # Section 2: Criteria params
         self.criteria_warped_nnf = [
             (CONFIGS_WAPRED_LOSS[name], weight) for name, weight in criteria_warped
         ]
@@ -84,27 +102,20 @@ class TransMorphModule(pl.LightningModule):
             (CONFIGS_FLOW_LOSS[name], weight) for name, weight in criteria_flow
         ]
 
+        # Section 3: Registration params
         self.registration_strategy_e = RegistrationStrategy[
-            registration_strategy.upper()
+            self.registration_strategy.upper()
         ]
 
         if self.registration_strategy_e == RegistrationStrategy.GOREG:
             self.registration_target = "mean"
-        self.registration_target_e = RegistrationTarget[registration_target.upper()]
 
+        self.registration_target_e = RegistrationTarget[self.registration_target.upper()]
+
+        # Section 4: Miscellaneous params
         self.optimizer_nnf = CONFIGS_OPTIMIZER[optimizer]
 
-        self.save_hyperparameters(
-            ignore=[
-                "net",
-                "criteria_warped_nnf",
-                "criteria_flow_nnf",
-                "optimizer_nnf",
-                "registration_target_e",
-                "registration_strategy_e",
-                "stn",
-            ]
-        )
+        self.update_hyperparameters()
 
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0
@@ -222,77 +233,89 @@ class TransMorphModule(pl.LightningModule):
     def _group_registration(self, series):
         """
         Group-based registration of a series of images.
-        https://onlinelibrary.wiley.com/doi/epdf/10.1002/mrm.26526
         """
         raise RuntimeError("Function is not properly implemented.")
+        #
+        # # Calculate mean intensities and sort them
+        # image_means = torch.mean(series, (-2, -3)).view(-1)
+        # if series.shape[-1] > 100:
+        #     image_min = torch.min(image_means[50:])
+        #     image_range = torch.max(image_means[50:]) - image_min
+        # else:
+        #     image_min = torch.min(image_means)
+        #     image_range = torch.max(image_means) - image_min
+        #
+        # def compute_image_bin(curr_mean, curr_higher_lim, bin_step, max_bin) -> int:
+        #     bin_index = 0
+        #     while curr_mean >= curr_higher_lim:
+        #         bin_index += 1
+        #         curr_higher_lim += bin_step
+        #         if bin_index == max_bin:
+        #             return max_bin
+        #     return bin_index
+        #
+        # num_bins = 9  # Number of bins (must be odd)
+        # step = image_range / num_bins
+        #
+        # # Assign images to bins
+        # image_bins = torch.tensor(
+        #     [compute_image_bin(image_mean, image_min + step, step, num_bins) for image_mean in image_means],
+        #     device=series.device,
+        # )
+        # # Pre-allocate memory for output series
+        # warped_series = torch.zeros(series.shape, device=series.device)
+        # flow_series = torch.zeros(
+        #     (series.shape[0], 2, *(series.shape[2:])), device=series.device
+        # )
+        #
+        # # Intragroup processing
+        # avg_group_images = []
+        # series_fixed = None
+        # for image_bin in range(0, num_bins):
+        #     group = series[..., image_bins == image_bin]
+        #
+        #     warped, flow, fixed = self._segment_registration(group)
+        #     if image_bin == len(avg_group_images) // 2:
+        #         series_fixed = fixed
+        #
+        #     flow_series[..., image_bins == image_bin] = flow
+        #     avg_group_images.append(torch.mean(warped, dim=-1))
+        #
+        #     del warped, flow, fixed
+        #
+        # # Intergroup processing
+        # group_series = torch.cat([t.unsqueeze(-1) for t in avg_group_images], dim=-1)
+        # warped, flow, fixed = self._segment_registration(group_series)
+        #
+        # for image_bin in range(0, num_bins):
+        #     group = flow_series[..., image_bins == image_bin]
+        #     for i in range(group.shape[-1]):
+        #         group[..., i] += (flow[..., image_bin])
+        # del warped, flow, fixed, group_series, avg_group_images, image_means, image_bins
+        #
+        # # Apply newly computed warp
+        # for k in range(0, series.shape[-1], 32):
+        #     warped_series_seg = self.stn(series[..., k:k + 32], flow_series[..., k:k + 32])
+        #     warped_series[..., k:k + 32] = warped_series_seg
+        #     del warped_series_seg
+        #
+        # gc.collect()
+        # torch.cuda.empty_cache()
+        #
+        # return warped_series, flow_series, series_fixed
 
-        # Calculate mean intensities and sort them
-        image_means = torch.mean(series, (-2, -3)).view(-1)
-        if series.shape[-1] > 100:
-            image_min = torch.min(image_means[50:])
-            image_range = torch.max(image_means[50:]) - image_min
-        else:
-            image_min = torch.min(image_means)
-            image_range = torch.max(image_means) - image_min
-
-        def compute_image_bin(curr_mean, curr_higher_lim, bin_step, max_bin) -> int:
-            bin_index = 0
-            while curr_mean >= curr_higher_lim:
-                bin_index += 1
-                curr_higher_lim += bin_step
-                if bin_index == max_bin:
-                    return max_bin
-            return bin_index
-
-        num_bins = 9  # Number of bins (must be odd)
-        step = image_range / num_bins
-
-        # Assign images to bins
-        image_bins = torch.tensor(
-            [compute_image_bin(image_mean, image_min + step, step, num_bins) for image_mean in image_means],
-            device=series.device,
+    def update_hyperparameters(self):
+        self.save_hyperparameters(
+            ignore=[
+                "net",
+                "stn",
+                "criteria_warped_nnf",
+                "criteria_flow_nnf",
+                "registration_target_e",
+                "registration_strategy_e",
+                "optimizer_nnf",
+            ]
         )
-        # Pre-allocate memory for output series
-        warped_series = torch.zeros(series.shape, device=series.device)
-        flow_series = torch.zeros(
-            (series.shape[0], 2, *(series.shape[2:])), device=series.device
-        )
-
-        # Intragroup processing
-        avg_group_images = []
-        series_fixed = None
-        for image_bin in range(0, num_bins):
-            group = series[..., image_bins == image_bin]
-
-            warped, flow, fixed = self._segment_registration(group)
-            if image_bin == len(avg_group_images) // 2:
-                series_fixed = fixed
-
-            flow_series[..., image_bins == image_bin] = flow
-            avg_group_images.append(torch.mean(warped, dim=-1))
-
-            del warped, flow, fixed
-
-        # Intergroup processing
-        group_series = torch.cat([t.unsqueeze(-1) for t in avg_group_images], dim=-1)
-        warped, flow, fixed = self._segment_registration(group_series)
-
-        for image_bin in range(0, num_bins):
-            group = flow_series[..., image_bins == image_bin]
-            for i in range(group.shape[-1]):
-                group[..., i] += (flow[..., image_bin])
-        del warped, flow, fixed, group_series, avg_group_images, image_means, image_bins
-
-        # Apply newly computed warp
-        for k in range(0, series.shape[-1], 32):
-            warped_series_seg = self.stn(series[..., k:k + 32], flow_series[..., k:k + 32])
-            warped_series[..., k:k + 32] = warped_series_seg
-            del warped_series_seg
-
-        gc.collect()
-        torch.cuda.empty_cache()
-
-        return warped_series, flow_series, series_fixed
 
     def extract_fixed_image(self, series: torch.Tensor):
         if self.registration_target_e == RegistrationTarget.LAST:
@@ -376,8 +399,6 @@ class TransMorphModule(pl.LightningModule):
         ]
         perc_neg_jac_det_mean = np.mean(perc_neg_jac_det_list)
         perc_neg_jac_det_var = np.var(perc_neg_jac_det_list)
-        perc_neg_jac_det_min = np.min(perc_neg_jac_det_list)
-        perc_neg_jac_det_max = np.max(perc_neg_jac_det_list)
 
         mse = torch.nn.MSELoss()
         mse_list = torch.stack(
@@ -385,8 +406,6 @@ class TransMorphModule(pl.LightningModule):
         )
         mse_mean = torch.mean(mse_list)
         mse_var = torch.var(mse_list)
-        mse_min = torch.min(mse_list)
-        mse_max = torch.max(mse_list)
 
         ssim = monai.metrics.SSIMMetric(2)
         ssim_list = torch.stack(
@@ -394,8 +413,6 @@ class TransMorphModule(pl.LightningModule):
         )
         ssim_mean = torch.mean(ssim_list)
         ssim_var = torch.var(ssim_list)
-        ssim_min = torch.min(ssim_list)
-        ssim_max = torch.max(ssim_list)
 
         loss = 0
         loss += self._compute_warped_loss(warped, fixed)
@@ -406,16 +423,10 @@ class TransMorphModule(pl.LightningModule):
             "test_loss": loss,
             "perc_neg_jac_det_mean": perc_neg_jac_det_mean,
             "perc_neg_jac_det_var": perc_neg_jac_det_var,
-            "perc_neg_jac_det_min": perc_neg_jac_det_min,
-            "perc_neg_jac_det_max": perc_neg_jac_det_max,
             "mse_mean": mse_mean,
             "mse_var": mse_var,
-            "mse_min": mse_min,
-            "mse_max": mse_max,
             "ssim_mean": ssim_mean,
             "ssim_var": ssim_var,
-            "ssim_min": ssim_min,
-            "ssim_max": ssim_max,
         }
 
         self.log_dict(
