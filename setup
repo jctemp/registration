@@ -1,0 +1,70 @@
+#!/bin/sh
+
+# Defaults
+DEFAULT_VENV_DIR=".venv"
+DEFAULT_PORT=8880
+
+# Check if a directory is provided as an argument
+if [ $# -eq 0 ]; then
+    echo "Virtual environment directory is not set, using default $DEFAULT_VENV_DIR"
+    VENV_DIR=$DEFAULT_VENV_DIR
+else
+    VENV_DIR=$1
+fi
+
+# Create the virtual environment if it doesn't exist
+if [ ! -d "$VENV_DIR" ]; then
+    python3 -m venv $VENV_DIR
+
+    # Check if the virtual environment was created successfully
+    if [ $? -ne 0 ]; then
+        echo "Failed to create virtual environment" >&2
+        exit 1
+    fi
+
+    echo "Virtual environment created at $VENV_DIR"
+
+    # Install dependencies in the virtual environment
+    $VENV_DIR/bin/pip install -r requirements.txt
+
+    # Check if the dependencies were installed successfully
+    if [ $? -ne 0 ]; then
+        echo "Failed to install dependencies" >&2
+        exit 1
+    fi
+
+    # Print a message indicating the environment is ready
+    echo "Virtual environment is activated and dependencies are installed."
+fi
+
+# Source the virtual environment activation script
+# This is specific to the shell being used; adjust as necessary
+. $VENV_DIR/bin/activate
+
+###############################################################################
+
+# Check if a port is provided as an argument
+if [ $# -eq 0 ]; then
+    echo "Port is not set, using default $DEFAULT_PORT"
+    PORT=$DEFAULT_PORT
+else
+    PORT=$1
+fi
+
+# Start Jupyter Lab and log output
+jupyter lab --ip=0.0.0.0 --port=$PORT --no-browser --LabApp.token="" > jupyterlab.log 2>&1 &
+
+# Get the PID of the last background command
+PID=$!
+echo "Started JupyterLab with the PID = $PID"
+
+# Check if JupyterLab started successfully
+if ps -p $PID > /dev/null; then
+    echo "JupyterLab is running with PID = $PID"
+else
+    echo "Failed to start JupyterLab" >&2
+    exit 1
+fi
+
+# Trap to ensure background job is cleaned up on exit
+trap 'echo "Stopping JupyterLab (PID = $PID)"; kill $PID' EXIT
