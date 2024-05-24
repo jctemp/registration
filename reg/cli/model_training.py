@@ -113,4 +113,4 @@ def main(args):
     print("=" * 120)
 
     if config:
-        serialize_data(config, str(run_directory / "config.toml"))
+        serialize_data(config, str(run_path / "config.toml"))

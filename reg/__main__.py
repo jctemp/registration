@@ -3,6 +3,7 @@ import argparse
 from reg.cli.parameter_generator import main as generate_main
 from reg.cli.batch_training import main as batch_main
 from reg.cli.model_training import main as train_main
+from reg.cli.model_eval import main as eval_main
 # from reg.cli.predict import main as predict_main
 
 
@@ -19,6 +20,7 @@ def main():
     create_parser_train(subparsers)
     create_parser_predict(subparsers)
     create_parser_batch(subparsers)
+    create_parser_eval(subparsers)
 
     args = parser.parse_args()
 
@@ -43,6 +45,14 @@ def main():
 
     elif args.command == "batch":
         batch_main(args)
+
+    elif args.command == "eval":
+        import torch
+        if not torch.cuda.is_available():
+            print("Require CUDA to train wrapper")
+            raise RuntimeError("CUDA is not available")
+        torch.set_float32_matmul_precision("high")
+        eval_main(args)
 
     else:
         parser.print_help()
@@ -194,6 +204,16 @@ def create_parser_batch(subparsers):
     parser.add_argument("--cpu", type=int, default=8)
     parser.add_argument("--mem", type=int, default=16)
     parser.add_argument("--gpu", type=int, default=1)
+
+
+def create_parser_eval(subparsers):
+    parser = subparsers.add_parser(
+        name="eval",
+        description="Create file for qualitative and quantitative evaluation.",
+    )
+    parser.add_argument("--param", type=str, required=True, help="Parameter name")
+    parser.add_argument("--group_dir", type=str, required=True, help="Group directory path")
+    parser.add_argument("--idx", type=int, required=True, help="Sample index for visualization")
 
 
 if __name__ == "__main__":
