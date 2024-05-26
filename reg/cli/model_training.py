@@ -16,7 +16,9 @@ def main(args):
     weights_directory = Path(f"model_weights")
     subdirectory = args.weight_directory
     if subdirectory is None:
-        subdirectory = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        subdirectory = "".join(
+            random.choices(string.ascii_uppercase + string.digits, k=8)
+        )
     run_directory = weights_directory / subdirectory
 
     path = Path(args.file)
@@ -46,7 +48,7 @@ def main(args):
         print(f"")
         print("=" * 120)
 
-        ident = ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+        ident = "".join(random.choices(string.ascii_uppercase + string.digits, k=8))
         name = f"{config['network']}-{subdirectory}-{ident}"
         wandb_logger = pll.WandbLogger(
             save_dir="logs", project="lung-registration", config=config, name=name
@@ -67,7 +69,9 @@ def main(args):
             save_dir="logs", project="lung-registration", version=model.id
         )
     else:
-        print(f"The training type {training_type} is unknown. Only .toml or .ckpt is allowed as suffix")
+        print(
+            f"The training type {training_type} is unknown. Only .toml or .ckpt is allowed as suffix"
+        )
         exit(1)
 
     wandb_logger.watch(model)

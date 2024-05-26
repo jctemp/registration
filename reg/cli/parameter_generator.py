@@ -9,21 +9,23 @@ def main(args):
         filename = filename.with_suffix(".toml")
 
     if filename.exists():
-        print(f"{filename.absolute()} already exists. Please remove to generate config.")
+        print(
+            f"{filename.absolute()} already exists. Please remove to generate config."
+        )
         exit(1)
 
     criteria_warped_list = args.criteria_warped.split("-")
     criteria_warped = []
     for i in range(0, len(criteria_warped_list), 2):
         name = criteria_warped_list[i]
-        weight = float(criteria_warped_list[i+1])
+        weight = float(criteria_warped_list[i + 1])
         criteria_warped.append((name, weight))
 
     criteria_flow_list = args.criteria_flow.split("-")
     criteria_flow = []
     for i in range(0, len(criteria_flow_list), 2):
         name = criteria_flow_list[i]
-        weight = float(criteria_flow_list[i+1])
+        weight = float(criteria_flow_list[i + 1])
         criteria_flow.append((name, weight))
 
     config = {

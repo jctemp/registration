@@ -38,18 +38,18 @@ class STN:
 
 class TransMorphModule(pl.LightningModule):
     def __init__(
-            self,
-            network: str = "transmorph",
-            criteria_warped: List[Tuple[str, float]] = tuple([("mse", 1.0)]),
-            criteria_flow: List[Tuple[str, float]] = tuple([("gl2d", 1.0)]),
-            registration_target: str = "last",
-            registration_strategy: str = "soreg",
-            registration_depth: int = 32,
-            registration_stride: int = 1,
-            registration_sampling: int = 0,
-            identity_loss: bool = False,
-            optimizer: str = "adam",
-            learning_rate: float = 1e-4,
+        self,
+        network: str = "transmorph",
+        criteria_warped: List[Tuple[str, float]] = tuple([("mse", 1.0)]),
+        criteria_flow: List[Tuple[str, float]] = tuple([("gl2d", 1.0)]),
+        registration_target: str = "last",
+        registration_strategy: str = "soreg",
+        registration_depth: int = 32,
+        registration_stride: int = 1,
+        registration_sampling: int = 0,
+        identity_loss: bool = False,
+        optimizer: str = "adam",
+        learning_rate: float = 1e-4,
     ):
         super().__init__()
 
@@ -110,7 +110,9 @@ class TransMorphModule(pl.LightningModule):
         if self.registration_strategy_e == RegistrationStrategy.GOREG:
             self.registration_target = "mean"
 
-        self.registration_target_e = RegistrationTarget[self.registration_target.upper()]
+        self.registration_target_e = RegistrationTarget[
+            self.registration_target.upper()
+        ]
 
         # Section 4: Miscellaneous params
         self.optimizer_nnf = CONFIGS_OPTIMIZER[optimizer]
@@ -146,31 +148,46 @@ class TransMorphModule(pl.LightningModule):
         if fixed is None:
             fixed = self.extract_fixed_image(series).unsqueeze(-1)
         max_reg_depth = self.registration_depth - 1
-        max_depth = series.shape[-1] if series.shape[-1] < max_reg_depth else max_reg_depth
+        max_depth = (
+            series.shape[-1] if series.shape[-1] < max_reg_depth else max_reg_depth
+        )
 
         # Pre-allocate memory for output series
         warped_shape = (*(series.shape[:-1]), max_depth * self.registration_sampling)
         warped_series = torch.zeros(warped_shape, device=series.device)
 
-        flow_shape = (series.shape[0], 2, *(series.shape[2:-1]), max_depth * self.registration_sampling)
+        flow_shape = (
+            series.shape[0],
+            2,
+            *(series.shape[2:-1]),
+            max_depth * self.registration_sampling,
+        )
         flow_series = torch.zeros(flow_shape, device=series.device)
 
         for i in range(self.registration_sampling):
             # Handle cases where series is smaller than the required input size
             if max_depth < max_reg_depth:
                 padding = max_reg_depth - max_depth
-                zeros = torch.zeros((*(series.shape[:-1]), padding), device=series.device)
+                zeros = torch.zeros(
+                    (*(series.shape[:-1]), padding), device=series.device
+                )
                 in_series = torch.cat([fixed, series, zeros], dim=-1)
                 del zeros
             else:
                 shift = np.random.randint(0, series.shape[-1] - max_depth)
-                in_series = torch.cat([fixed, series[..., shift:shift + max_depth]], dim=-1)
+                in_series = torch.cat(
+                    [fixed, series[..., shift : shift + max_depth]], dim=-1
+                )
 
             warped, flow = self.net(in_series)
 
             # Assign the result to the corresponding segment
-            warped_series[..., i * max_depth:(i + 1) * max_depth] = warped[..., 1:max_depth + 1]
-            flow_series[..., i * max_depth:(i + 1) * max_depth] = flow[..., 1:max_depth + 1]
+            warped_series[..., i * max_depth : (i + 1) * max_depth] = warped[
+                ..., 1 : max_depth + 1
+            ]
+            flow_series[..., i * max_depth : (i + 1) * max_depth] = flow[
+                ..., 1 : max_depth + 1
+            ]
 
             del warped, flow, in_series
 
@@ -201,8 +218,8 @@ class TransMorphModule(pl.LightningModule):
             in_series = torch.cat([fixed, series, zeros], dim=-1)
             warped, flow = self.net(in_series)
 
-            warped_series[..., :] = warped[..., 1:max_depth + 1]
-            flow_series[..., :] = flow[..., 1:max_depth + 1]
+            warped_series[..., :] = warped[..., 1 : max_depth + 1]
+            flow_series[..., :] = flow[..., 1 : max_depth + 1]
 
             del series, zeros, in_series, warped, flow
 
@@ -223,8 +240,8 @@ class TransMorphModule(pl.LightningModule):
             warped, flow = self.net(in_series)
 
             # Assign the result to the corresponding segment
-            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
-            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
+            warped_series[..., idx_start + shift : idx_end] = warped[..., shift + 1 :]
+            flow_series[..., idx_start + shift : idx_end] = flow[..., shift + 1 :]
 
             del warped, flow, in_series
 
@@ -335,9 +352,13 @@ class TransMorphModule(pl.LightningModule):
 
     def forward(self, series: torch.Tensor, training=False):
         if training:
-            series = series[..., ::self.registration_stride]
+            series = series[..., :: self.registration_stride]
 
-        if training and self.registration_sampling > 0 and self.registration_strategy_e == RegistrationStrategy.SOREG:
+        if (
+            training
+            and self.registration_sampling > 0
+            and self.registration_strategy_e == RegistrationStrategy.SOREG
+        ):
             return self._sampled_segment_registration(series)
         if self.registration_strategy_e == RegistrationStrategy.SOREG:
             return self._segment_registration(series)

@@ -7,6 +7,7 @@ def get_transmorph_config():
     config.update(get_swin_default_config())
     return config
 
+
 # ======================================================================================================================
 # CONFIGURATIONS
 

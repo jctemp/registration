@@ -3,6 +3,7 @@ import argparse
 from reg.cli.parameter_generator import main as generate_main
 from reg.cli.batch_training import main as batch_main
 from reg.cli.model_training import main as train_main
+
 # from reg.cli.predict import main as predict_main
 
 
@@ -27,6 +28,7 @@ def main():
 
     elif args.command == "train":
         import torch
+
         if not torch.cuda.is_available():
             print("Require CUDA to train wrapper")
             raise RuntimeError("CUDA is not available")
@@ -35,6 +37,7 @@ def main():
 
     elif args.command == "predict":
         import torch
+
         if not torch.cuda.is_available():
             print("Require CUDA to train wrapper")
             raise RuntimeError("CUDA is not available")
@@ -108,7 +111,7 @@ def create_parser_generate(subparsers):
         type=int,
         default=1,
         help="The size of subsampling in the temporal dimension",
-        choices=range(1, 8)
+        choices=range(1, 8),
     )
 
     parser.add_argument(
@@ -116,7 +119,7 @@ def create_parser_generate(subparsers):
         type=int,
         default=1,
         help="Sample the series to present single segments to the model",
-        choices=range(0, 9)
+        choices=range(0, 9),
     )
 
     parser.add_argument(
@@ -141,10 +144,7 @@ def create_parser_generate(subparsers):
     )
 
     parser.add_argument(
-        "--output", "-o",
-        type=str,
-        default="config",
-        help="Set the output file name"
+        "--output", "-o", type=str, default="config", help="Set the output file name"
     )
 
 
@@ -166,11 +166,14 @@ def create_parser_train(subparsers):
         type=str,
         default=None,
         help="The name of the subdirectory where weights are saved. If none is specified, it will be a random "
-             "identifier."
+        "identifier.",
     )
 
     parser.add_argument(
-        "--epochs", type=int, default=100, help="The number of epochs to perform training"
+        "--epochs",
+        type=int,
+        default=100,
+        help="The number of epochs to perform training",
     )
 
 
@@ -190,7 +193,11 @@ def create_parser_batch(subparsers):
     parser.add_argument("param", type=str, default=None, nargs="?")
     parser.add_argument("values", default=None, nargs=argparse.REMAINDER)
     parser.add_argument("--epochs", type=int, default=100)
-    parser.add_argument("--weight_directory", type=str, default=None, )
+    parser.add_argument(
+        "--weight_directory",
+        type=str,
+        default=None,
+    )
     parser.add_argument("--cpu", type=int, default=8)
     parser.add_argument("--mem", type=int, default=16)
     parser.add_argument("--gpu", type=int, default=1)
