@@ -161,13 +161,17 @@ cython_debug/
 .direnv
 .virtual_documents
 
-log
-wandb
-model_weights
-lightning_logs
+# PROJECT FILES
 .vscode
-TransMorph_Transformer_for_Medical_Image_Registration/
 .idea
 .ruff_cache
+
 tmp
+log
+wandb
+lightning_logs
+
+model_weights
+model_eval
+
 *.toml
