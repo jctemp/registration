@@ -227,3 +227,4 @@ widgetsnbextension==4.0.9
 wrapt==1.14.1
 yarl==1.9.2
 tomlkit==0.12.5
+imageio==2.34.1
