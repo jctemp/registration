@@ -42,8 +42,7 @@ def main(args):
 
         print(f"{'=' * 5} Configuration summary {'=' * 92}")
         print(f"")
-        for key, value in config.items():
-            print(f"{key:<25} = {value}")
+        print(model.hparams)
         print(f"")
         print("=" * 120)
 
@@ -60,7 +59,7 @@ def main(args):
 
         print(f"{'=' * 5} Configuration summary {'=' * 92}")
         print(f"")
-        print(f"Model training will be continued. No summary available.")
+        print(model.hparams)
         print(f"")
         print("=" * 120)
 
