@@ -23,6 +23,8 @@ CONFIGS_OPTIMIZER = {
 class RegistrationTarget(Enum):
     LAST = 0
     MEAN = 1
+    MAX = 2
+    MIN = 3
 
 
 class RegistrationStrategy(Enum):
@@ -344,6 +346,18 @@ class TransMorphModule(pl.LightningModule):
             mean_of_means = torch.mean(means)
             diff = torch.abs(means - mean_of_means)
             _, i = torch.topk(diff, 1, largest=False)
+            return series[..., i].view(series.shape[:-1])
+        elif self.registration_target_e == RegistrationTarget.MAX:
+            if series.shape[-1] > 100:
+                series = series[30:]
+            means = torch.mean(series, (-2, -3)).view(-1)
+            _, i = torch.topk(means, 1, largest=True)
+            return series[..., i].view(series.shape[:-1])
+        elif self.registration_target_e == RegistrationTarget.MIN:
+            if series.shape[-1] > 100:
+                series = series[30:]
+            means = torch.mean(series, (-2, -3)).view(-1)
+            _, i = torch.topk(means, 1, largest=False)
             return series[..., i].view(series.shape[:-1])
         else:
             raise ValueError(
