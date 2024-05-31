@@ -25,6 +25,7 @@ class RegistrationTarget(Enum):
     MEAN = 1
     MAX = 2
     MIN = 3
+    RANDOM = 4
 
 
 class RegistrationStrategy(Enum):
@@ -124,6 +125,8 @@ class TransMorphModule(pl.LightningModule):
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0
         for loss_fn, weight in self.criteria_warped_nnf:
+            # TODO: check if mean has not statistical effect on loss
+            # TODO: compare warped images to each other over a neighbourhood size of M
             loss += torch.mean(
                 torch.stack(
                     [loss_fn(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
@@ -358,6 +361,11 @@ class TransMorphModule(pl.LightningModule):
                 series = series[30:]
             means = torch.mean(series, (-2, -3)).view(-1)
             _, i = torch.topk(means, 1, largest=False)
+            return series[..., i].view(series.shape[:-1])
+        elif self.registration_target_e == RegistrationTarget.RANDOM:
+            if series.shape[-1] > 100:
+                series = series[30:]
+            i = np.random.randint(30, series.shape[-1])
             return series[..., i].view(series.shape[:-1])
         else:
             raise ValueError(
