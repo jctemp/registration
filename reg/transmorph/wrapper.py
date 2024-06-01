@@ -342,6 +342,7 @@ class TransMorphModule(pl.LightningModule):
     def extract_fixed_image(self, series: torch.Tensor):
         if self.registration_target_e == RegistrationTarget.LAST:
             return series[..., -1].view(series.shape[:-1])
+
         elif self.registration_target_e == RegistrationTarget.MEAN:
             means = torch.mean(series, (-2, -3)).view(-1)
             if means.shape[-1] > 100:
@@ -350,23 +351,27 @@ class TransMorphModule(pl.LightningModule):
             diff = torch.abs(means - mean_of_means)
             _, i = torch.topk(diff, 1, largest=False)
             return series[..., i].view(series.shape[:-1])
+
         elif self.registration_target_e == RegistrationTarget.MAX:
             if series.shape[-1] > 100:
-                series = series[30:]
+                series = series[..., 30:]
             means = torch.mean(series, (-2, -3)).view(-1)
             _, i = torch.topk(means, 1, largest=True)
             return series[..., i].view(series.shape[:-1])
+
         elif self.registration_target_e == RegistrationTarget.MIN:
             if series.shape[-1] > 100:
-                series = series[30:]
+                series = series[..., 30:]
             means = torch.mean(series, (-2, -3)).view(-1)
             _, i = torch.topk(means, 1, largest=False)
             return series[..., i].view(series.shape[:-1])
+
         elif self.registration_target_e == RegistrationTarget.RANDOM:
             if series.shape[-1] > 100:
-                series = series[30:]
+                series = series[..., 30:]
             i = np.random.randint(30, series.shape[-1])
             return series[..., i].view(series.shape[:-1])
+
         else:
             raise ValueError(
                 f"strategy has to be last or mean, was {self.registration_target_e.name.lower()}"
