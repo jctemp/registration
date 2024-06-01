@@ -95,7 +95,7 @@ def create_parser_generate(subparsers):
         type=str,
         default="last",
         help="The selection process for the target image to which all images will be aligned to",
-        choices=["last", "mean"],
+        choices=["last", "mean", "min", "max", "random"],
     )
 
     parser.add_argument(
