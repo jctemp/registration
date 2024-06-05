@@ -123,20 +123,32 @@ class TransMorphModule(pl.LightningModule):
         self.update_hyperparameters()
 
     def _compute_warped_loss(self, warped, fixed) -> float:
-        loss = 0
+        loss = 0.0
+
+        window = 2  # Making it a hyperparameter???
+        warped = warped.permute(-1, 0, 1, 2, 3)
+        n = warped.shape[0]
+
         for loss_fn, weight in self.criteria_warped_nnf:
-            # TODO: check if mean has not statistical effect on loss
-            # TODO: compare warped images to each other over a neighbourhood size of M
-            loss += torch.mean(
-                torch.stack(
-                    [loss_fn(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
-                )
-            )
-            loss *= weight
+            neighbourhood_loss = 0.0
+            fixed_loss = 0.0
+
+            fixed_loss += loss_fn(warped[0], fixed[..., 0])
+            fixed_loss += loss_fn(warped[n-1], fixed[..., 0])
+            for i in range(1, n-1):
+                fixed_loss += loss_fn(warped[i], fixed[..., 0])
+                neighbourhood_loss += loss_fn(warped[i + 1], warped[i])
+                neighbourhood_loss += loss_fn(warped[i - 1], warped[i])
+
+            fixed_loss /= n
+            neighbourhood_loss /= n * 2.0 * window
+
+            loss += (fixed_loss + neighbourhood_loss) * weight
+
         return loss
 
     def _compute_flow_loss(self, flow) -> float:
-        loss = 0
+        loss = 0.0
         for loss_fn, weight in self.criteria_flow_nnf:
             loss += torch.mean(
                 torch.stack([loss_fn(f) for f in flow.permute(-1, 0, 1, 2, 3)])
