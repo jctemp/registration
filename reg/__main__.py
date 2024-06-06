@@ -87,7 +87,7 @@ def create_parser_generate(subparsers):
         type=int,
         default=32,
         help="The temporal dimension size the model can process at once",
-        choices=range(32, 256, 32),
+        choices=range(32, 257, 32),
     )
 
     parser.add_argument(
