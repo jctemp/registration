@@ -94,7 +94,7 @@ def main(args):
     n_available_cores = 1 if n_available_cores == 0 else n_available_cores
     datamodule = LungDataModule(
         root_dir="/media/agjvc_rad3/_TESTKOLLEKTIV/Daten/Daten",
-        max_series_length=128,
+        max_series_length=config["context_length"],
         split=(0.7, 0.1, 0.2),
         seed=42,
         pin_memory=True,

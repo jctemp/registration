@@ -91,15 +91,13 @@ class TransMorphModule(pl.LightningModule):
         successor_warped = torch.roll(warped, -1, dims=0)
         predecessor_warped = torch.roll(warped, 1, dims=1)
 
-        s_warped = zip(warped[:-1], successor_warped[:-1])
-        p_warped = zip(warped[1:], predecessor_warped[1:])
-
+        length = len(warped) - 1
         for loss_fn, weight in self.criteria_warped_nnf:
-            s_values = [loss_fn(w, s) for (w, s) in s_warped]
-            p_values = [loss_fn(w, p) for (w, p) in p_warped]
+            s_values = [loss_fn(w, s) for (w, s) in zip(warped[:-1], successor_warped[:-1])]
+            p_values = [loss_fn(w, p) for (w, p) in zip(warped[1:], predecessor_warped[1:])]
 
-            s_mean = sum(s_values) / len(s_values) * weight
-            p_mean = sum(p_values) / len(p_values) * weight
+            s_mean = sum(s_values) / length * weight
+            p_mean = sum(p_values) / length * weight
 
             loss += (s_mean + p_mean) * 0.5
 
