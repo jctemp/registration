@@ -147,8 +147,8 @@ class TransMorphModule(pl.LightningModule):
             in_series = torch.cat([series, zeros], dim=-1)
             warped, flow = self.net(in_series)
 
-            warped_series[..., :] = warped[..., 1: max_depth + 1]
-            flow_series[..., :] = flow[..., 1: max_depth + 1]
+            warped_series[..., :] = warped[..., : max_depth]
+            flow_series[..., :] = flow[..., : max_depth]
 
             del series, zeros, in_series, warped, flow
 
@@ -168,8 +168,8 @@ class TransMorphModule(pl.LightningModule):
             warped, flow = self.net(series[..., idx_start:idx_end])
 
             # Assign the result to the corresponding segment
-            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
-            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
+            warped_series[..., idx_start + shift: idx_end] = warped[..., shift:]
+            flow_series[..., idx_start + shift: idx_end] = flow[..., shift:]
 
             del warped, flow
 
