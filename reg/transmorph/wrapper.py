@@ -91,15 +91,11 @@ class TransMorphModule(pl.LightningModule):
         successor_warped = torch.roll(warped, -1, dims=0)
         predecessor_warped = torch.roll(warped, 1, dims=1)
 
-        length = len(warped) - 1
         for loss_fn, weight in self.criteria_warped_nnf:
             s_values = [loss_fn(w, s) for (w, s) in zip(warped[:-1], successor_warped[:-1])]
             p_values = [loss_fn(w, p) for (w, p) in zip(warped[1:], predecessor_warped[1:])]
-
-            s_mean = sum(s_values) / length * weight
-            p_mean = sum(p_values) / length * weight
-
-            loss += (s_mean + p_mean) * 0.5
+            values = torch.stack(s_values + p_values)
+            loss += torch.mean(values) * weight
 
         return loss
 
@@ -208,53 +204,47 @@ class TransMorphModule(pl.LightningModule):
     def test_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
         warped, flow = self(batch)
 
-        means = torch.mean(batch, (-2, -3)).view(-1)
-        if means.shape[-1] > 100:
-            means = means[30:]
-        mean_of_means = torch.mean(means)
-        diff = torch.abs(means - mean_of_means)
-        _, i = torch.topk(diff, 1, largest=False)
-        fixed = batch[..., i].view(batch.shape[:-1]).unsqueeze(-1)
+        result = {}
 
-        fixed_np = fixed.detach().cpu().numpy()[0, :, :, :]
         flow_np = flow.detach().cpu().numpy()[0, :, :, :, :]
         jac_det_list = [
-            jacobian_det(flow_np[:, :, :, i]) for i in range(flow_np.shape[-1])
+            jacobian_det(flow_np[..., i]) for i in range(flow_np.shape[-1])
         ]
         perc_neg_jac_det_list = [
-            np.sum(jac_det <= 0) / np.prod(fixed_np.shape) for jac_det in jac_det_list
+            np.sum(jac_det <= 0) / np.prod(jac_det.shape) for jac_det in jac_det_list
         ]
         perc_neg_jac_det_mean = np.mean(perc_neg_jac_det_list)
         perc_neg_jac_det_var = np.var(perc_neg_jac_det_list)
 
-        mse = torch.nn.MSELoss()
-        mse_list = torch.stack(
-            [mse(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
-        )
-        mse_mean = torch.mean(mse_list)
-        mse_var = torch.var(mse_list)
+        result.update({
+            "perc_neg_jac_det_mean": perc_neg_jac_det_mean,
+            "perc_neg_jac_det_var": perc_neg_jac_det_var,
+        })
 
-        ssim = monai.metrics.SSIMMetric(2)
-        ssim_list = torch.stack(
-            [ssim(w, fixed[..., 0]) for w in warped.permute(-1, 0, 1, 2, 3)]
-        )
-        ssim_mean = torch.mean(ssim_list)
-        ssim_var = torch.var(ssim_list)
+        warped = warped.permute(-1, 0, 1, 2, 3)
+        successor_warped = torch.roll(warped, -1, dims=0)
+        predecessor_warped = torch.roll(warped, 1, dims=1)
+
+        for name, measure in [("mse", torch.nn.MSELoss()), ("ssim", monai.metrics.SSIMMetric(2))]:
+            s_values = [measure(w, s) for (w, s) in zip(warped[:-1], successor_warped[:-1])]
+            p_values = [measure(w, p) for (w, p) in zip(warped[1:], predecessor_warped[1:])]
+            values = torch.stack(s_values + p_values)
+            mean = torch.mean(values)
+            var = torch.var(values)
+
+            result.update({
+                f"{name}_mean": mean,
+                f"{name}_var": var,
+            })
 
         loss = 0
         loss += self._compute_warped_loss(warped)
         loss += self._compute_flow_loss(flow)
-        del warped, flow, fixed_np, flow_np
+        del warped, flow, flow_np
 
-        result = {
+        result.update({
             "test_loss": loss,
-            "perc_neg_jac_det_mean": perc_neg_jac_det_mean,
-            "perc_neg_jac_det_var": perc_neg_jac_det_var,
-            "mse_mean": mse_mean,
-            "mse_var": mse_var,
-            "ssim_mean": ssim_mean,
-            "ssim_var": ssim_var,
-        }
+        })
 
         self.log_dict(
             result,
