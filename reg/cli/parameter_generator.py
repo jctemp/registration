@@ -32,12 +32,7 @@ def main(args):
         "network": args.network,
         "criteria_warped": criteria_warped,
         "criteria_flow": criteria_flow,
-        "registration_target": args.registration_target,
-        "registration_strategy": args.registration_strategy,
-        "registration_depth": args.registration_depth,
-        "registration_stride": args.registration_stride,
-        "registration_sampling": args.registration_sampling,
-        "identity_loss": args.identity_loss,
+        "context_length": args.context_length,
         "optimizer": args.optimizer,
         "learning_rate": args.learning_rate,
     }

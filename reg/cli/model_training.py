@@ -32,12 +32,7 @@ def main(args):
             network=config["network"],
             criteria_warped=config["criteria_warped"],
             criteria_flow=config["criteria_flow"],
-            registration_target=config["registration_target"],
-            registration_strategy=config["registration_strategy"],
-            registration_depth=config["registration_depth"],
-            registration_stride=config["registration_stride"],
-            registration_sampling=config["registration_sampling"],
-            identity_loss=config["identity_loss"],
+            context_length=config["context_length"],
             optimizer=config["optimizer"],
             learning_rate=config["learning_rate"],
         )

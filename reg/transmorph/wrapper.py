@@ -1,6 +1,4 @@
-from enum import Enum
 from typing import Any, Tuple, List, Mapping
-import math
 
 import monai.metrics
 import numpy as np
@@ -21,19 +19,6 @@ CONFIGS_OPTIMIZER = {
 }
 
 
-class RegistrationTarget(Enum):
-    LAST = 0
-    MEAN = 1
-    MAX = 2
-    MIN = 3
-    RANDOM = 4
-
-
-class RegistrationStrategy(Enum):
-    SOREG = 0
-    GOREG = 1
-
-
 class STN:
     def __init__(self, net, stride):
         self.net = net
@@ -46,12 +31,7 @@ class TransMorphModule(pl.LightningModule):
             network: str = "transmorph",
             criteria_warped: List[Tuple[str, float]] = tuple([("mse", 1.0)]),
             criteria_flow: List[Tuple[str, float]] = tuple([("gl2d", 1.0)]),
-            registration_target: str = "last",
-            registration_strategy: str = "soreg",
-            registration_depth: int = 32,
-            registration_stride: int = 1,
-            registration_sampling: int = 0,
-            identity_loss: bool = False,
+            context_length: int = 256,
             optimizer: str = "adam",
             learning_rate: float = 1e-4,
     ):
@@ -61,12 +41,7 @@ class TransMorphModule(pl.LightningModule):
         self.network = network
         self.criteria_warped = criteria_warped
         self.criteria_flow = criteria_flow
-        self.registration_target = registration_target
-        self.registration_strategy = registration_strategy
-        self.registration_depth = registration_depth
-        self.registration_stride = registration_stride
-        self.registration_sampling = registration_sampling
-        self.identity_loss = identity_loss
+        self.context_length = context_length
         self.optimizer = optimizer
         self.learning_rate = learning_rate
         self.id = None
@@ -76,15 +51,13 @@ class TransMorphModule(pl.LightningModule):
         self.stn = None
         self.criteria_warped_nnf = None
         self.criteria_flow_nnf = None
-        self.registration_strategy_e = None
-        self.registration_target_e = None
         self.optimizer_nnf = None
 
         # Section 1: Network
         config = CONFIG_TM[network]
         config.img_size = (
             *config.img_size[:-1],
-            self.registration_depth,
+            self.context_length,
         )
 
         descriptors = network.split("-")
@@ -106,30 +79,29 @@ class TransMorphModule(pl.LightningModule):
             (CONFIGS_FLOW_LOSS[name], weight) for name, weight in criteria_flow
         ]
 
-        # Section 3: Registration params
-        self.registration_strategy_e = RegistrationStrategy[
-            self.registration_strategy.upper()
-        ]
-
-        if self.registration_strategy_e == RegistrationStrategy.GOREG:
-            self.registration_target = "mean"
-
-        self.registration_target_e = RegistrationTarget[
-            self.registration_target.upper()
-        ]
-
         # Section 4: Miscellaneous params
         self.optimizer_nnf = CONFIGS_OPTIMIZER[optimizer]
 
         self.update_hyperparameters()
 
-    def _compute_warped_loss(self, warped, fixed) -> float:
+    def _compute_warped_loss(self, warped) -> float:
         loss = 0.0
 
         warped = warped.permute(-1, 0, 1, 2, 3)
+        successor_warped = torch.roll(warped, -1, dims=0)
+        predecessor_warped = torch.roll(warped, 1, dims=1)
+
+        s_warped = zip(warped[:-1], successor_warped[:-1])
+        p_warped = zip(warped[1:], predecessor_warped[1:])
+
         for loss_fn, weight in self.criteria_warped_nnf:
-            means = [loss_fn(w, fixed[..., 0]) for w in warped]
-            loss += sum(means) / len(means) * weight
+            s_values = [loss_fn(w, s) for (w, s) in s_warped]
+            p_values = [loss_fn(w, p) for (w, p) in p_warped]
+
+            s_mean = sum(s_values) / len(s_values) * weight
+            p_mean = sum(p_values) / len(p_values) * weight
+
+            loss += (s_mean + p_mean) * 0.5
 
         return loss
 
@@ -141,188 +113,6 @@ class TransMorphModule(pl.LightningModule):
             )
             loss *= weight
         return loss
-
-    def _sampled_segment_registration(self, series, fixed=None):
-        """
-        Sampled segment registration of a series of images.
-        """
-
-        # Extract fixed image and prepare for processing
-        if fixed is None:
-            fixed = self.extract_fixed_image(series).unsqueeze(-1)
-        max_reg_depth = self.registration_depth - 1
-        max_depth = (
-            series.shape[-1] if series.shape[-1] < max_reg_depth else max_reg_depth
-        )
-
-        # Pre-allocate memory for output series
-        warped_shape = (*(series.shape[:-1]), max_depth * self.registration_sampling)
-        warped_series = torch.zeros(warped_shape, device=series.device)
-
-        flow_shape = (
-            series.shape[0],
-            2,
-            *(series.shape[2:-1]),
-            max_depth * self.registration_sampling,
-        )
-        flow_series = torch.zeros(flow_shape, device=series.device)
-
-        for i in range(self.registration_sampling):
-            # Handle cases where series is smaller than the required input size
-            if max_depth < max_reg_depth:
-                padding = max_reg_depth - max_depth
-                zeros = torch.zeros(
-                    (*(series.shape[:-1]), padding), device=series.device
-                )
-                in_series = torch.cat([fixed, series, zeros], dim=-1)
-                del zeros
-            else:
-                shift = np.random.randint(0, series.shape[-1] - max_depth if series.shape[-1] > max_depth else 1)
-                in_series = torch.cat(
-                    [fixed, series[..., shift: shift + max_depth]], dim=-1
-                )
-
-            warped, flow = self.net(in_series)
-
-            # Assign the result to the corresponding segment
-            warped_series[..., i * max_depth: (i + 1) * max_depth] = warped[
-                                                                     ..., 1: max_depth + 1
-                                                                     ]
-            flow_series[..., i * max_depth: (i + 1) * max_depth] = flow[
-                                                                   ..., 1: max_depth + 1
-                                                                   ]
-
-            del warped, flow, in_series
-
-        return warped_series, flow_series, fixed
-
-    def _segment_registration(self, series, fixed=None):
-        """
-        Segment-wise registration of a series of images.
-        """
-
-        # Extract fixed image and prepare for processing
-        if fixed is None:
-            fixed = self.extract_fixed_image(series).unsqueeze(-1)
-        stride = self.registration_depth - 1
-        max_depth = series.shape[-1]
-
-        # Pre-allocate memory for output series
-        warped_shape = (*(series.shape[:-1]), max_depth)
-        warped_series = torch.zeros(warped_shape, device=series.device)
-
-        flow_shape = (series.shape[0], 2, *(series.shape[2:-1]), max_depth)
-        flow_series = torch.zeros(flow_shape, device=series.device)
-
-        # Handle cases where series is smaller than the required input size
-        if max_depth < stride:
-            padding = stride - max_depth
-            zeros = torch.zeros((*(series.shape[:-1]), padding), device=series.device)
-            in_series = torch.cat([fixed, series, zeros], dim=-1)
-            warped, flow = self.net(in_series)
-
-            warped_series[..., :] = warped[..., 1: max_depth + 1]
-            flow_series[..., :] = flow[..., 1: max_depth + 1]
-
-            del series, zeros, in_series, warped, flow
-
-            return warped_series, flow_series, fixed
-
-        # Process the series in segments
-        for idx_start in range(0, max_depth, stride):
-            idx_end = idx_start + stride
-            shift = 0
-
-            # Adjust indices if segment exceeds the series depth
-            if idx_end > max_depth:
-                shift = idx_end - max_depth
-                idx_start -= shift
-                idx_end -= shift
-
-            in_series = torch.cat([fixed, series[..., idx_start:idx_end]], dim=-1)
-            warped, flow = self.net(in_series)
-
-            # Assign the result to the corresponding segment
-            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
-            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
-
-            del warped, flow, in_series
-
-        return warped_series, flow_series, fixed
-
-    def _group_registration(self, series):
-        """
-        Group-based registration of a series of images.
-        """
-        raise RuntimeError("Function is not properly implemented.")
-        #
-        # # Calculate mean intensities and sort them
-        # image_means = torch.mean(series, (-2, -3)).view(-1)
-        # if series.shape[-1] > 100:
-        #     image_min = torch.min(image_means[50:])
-        #     image_range = torch.max(image_means[50:]) - image_min
-        # else:
-        #     image_min = torch.min(image_means)
-        #     image_range = torch.max(image_means) - image_min
-        #
-        # def compute_image_bin(curr_mean, curr_higher_lim, bin_step, max_bin) -> int:
-        #     bin_index = 0
-        #     while curr_mean >= curr_higher_lim:
-        #         bin_index += 1
-        #         curr_higher_lim += bin_step
-        #         if bin_index == max_bin:
-        #             return max_bin
-        #     return bin_index
-        #
-        # num_bins = 9  # Number of bins (must be odd)
-        # step = image_range / num_bins
-        #
-        # # Assign images to bins
-        # image_bins = torch.tensor(
-        #     [compute_image_bin(image_mean, image_min + step, step, num_bins) for image_mean in image_means],
-        #     device=series.device,
-        # )
-        # # Pre-allocate memory for output series
-        # warped_series = torch.zeros(series.shape, device=series.device)
-        # flow_series = torch.zeros(
-        #     (series.shape[0], 2, *(series.shape[2:])), device=series.device
-        # )
-        #
-        # # Intragroup processing
-        # avg_group_images = []
-        # series_fixed = None
-        # for image_bin in range(0, num_bins):
-        #     group = series[..., image_bins == image_bin]
-        #
-        #     warped, flow, fixed = self._segment_registration(group)
-        #     if image_bin == len(avg_group_images) // 2:
-        #         series_fixed = fixed
-        #
-        #     flow_series[..., image_bins == image_bin] = flow
-        #     avg_group_images.append(torch.mean(warped, dim=-1))
-        #
-        #     del warped, flow, fixed
-        #
-        # # Intergroup processing
-        # group_series = torch.cat([t.unsqueeze(-1) for t in avg_group_images], dim=-1)
-        # warped, flow, fixed = self._segment_registration(group_series)
-        #
-        # for image_bin in range(0, num_bins):
-        #     group = flow_series[..., image_bins == image_bin]
-        #     for i in range(group.shape[-1]):
-        #         group[..., i] += (flow[..., image_bin])
-        # del warped, flow, fixed, group_series, avg_group_images, image_means, image_bins
-        #
-        # # Apply newly computed warp
-        # for k in range(0, series.shape[-1], 32):
-        #     warped_series_seg = self.stn(series[..., k:k + 32], flow_series[..., k:k + 32])
-        #     warped_series[..., k:k + 32] = warped_series_seg
-        #     del warped_series_seg
-        #
-        # gc.collect()
-        # torch.cuda.empty_cache()
-        #
-        # return warped_series, flow_series, series_fixed
 
     def update_hyperparameters(self):
         self.save_hyperparameters(
@@ -337,76 +127,61 @@ class TransMorphModule(pl.LightningModule):
             ]
         )
 
-    def extract_fixed_image(self, series: torch.Tensor):
-        if self.registration_target_e == RegistrationTarget.LAST:
-            return series[..., -1].view(series.shape[:-1])
+    def forward(self, series: torch.Tensor):
+        """
+        Segment-wise registration of a series of images.
+        """
+        max_depth = series.shape[-1]
 
-        elif self.registration_target_e == RegistrationTarget.MEAN:
-            means = torch.mean(series, (-2, -3)).view(-1)
-            if means.shape[-1] > 100:
-                means = means[30:]
-            mean_of_means = torch.mean(means)
-            diff = torch.abs(means - mean_of_means)
-            _, i = torch.topk(diff, 1, largest=False)
-            return series[..., i].view(series.shape[:-1])
+        # Pre-allocate memory for output series
+        warped_shape = (*(series.shape[:-1]), max_depth)
+        warped_series = torch.zeros(warped_shape, device=series.device)
 
-        elif self.registration_target_e == RegistrationTarget.MAX:
-            if series.shape[-1] > 100:
-                series = series[..., 30:]
-            means = torch.mean(series, (-2, -3)).view(-1)
-            _, i = torch.topk(means, 1, largest=True)
-            return series[..., i].view(series.shape[:-1])
+        flow_shape = (series.shape[0], 2, *(series.shape[2:-1]), max_depth)
+        flow_series = torch.zeros(flow_shape, device=series.device)
 
-        elif self.registration_target_e == RegistrationTarget.MIN:
-            if series.shape[-1] > 100:
-                series = series[..., 30:]
-            means = torch.mean(series, (-2, -3)).view(-1)
-            _, i = torch.topk(means, 1, largest=False)
-            return series[..., i].view(series.shape[:-1])
+        # Handle cases where series is smaller than the required input size
+        if max_depth < self.context_length:
+            padding = self.context_length - max_depth
+            zeros = torch.zeros((*(series.shape[:-1]), padding), device=series.device)
+            in_series = torch.cat([series, zeros], dim=-1)
+            warped, flow = self.net(in_series)
 
-        elif self.registration_target_e == RegistrationTarget.RANDOM:
-            if series.shape[-1] > 100:
-                series = series[..., 30:]
-            i = np.random.randint(30, series.shape[-1])
-            return series[..., i].view(series.shape[:-1])
+            warped_series[..., :] = warped[..., 1: max_depth + 1]
+            flow_series[..., :] = flow[..., 1: max_depth + 1]
 
-        else:
-            raise ValueError(
-                f"strategy has to be last or mean, was {self.registration_target_e.name.lower()}"
-            )
+            del series, zeros, in_series, warped, flow
 
-    def forward(self, series: torch.Tensor, training=False):
-        if training:
-            series = series[..., :: self.registration_stride]
+            return warped_series, flow_series
 
-        if (
-                training
-                and self.registration_sampling > 0
-                and self.registration_strategy_e == RegistrationStrategy.SOREG
-        ):
-            return self._sampled_segment_registration(series)
-        if self.registration_strategy_e == RegistrationStrategy.SOREG:
-            return self._segment_registration(series)
-        elif self.registration_strategy_e == RegistrationStrategy.GOREG:
-            return self._group_registration(series)
+        # Process the series in segments
+        for idx_start in range(0, max_depth, self.context_length):
+            idx_end = idx_start + self.context_length
+            shift = 0
 
-        raise ValueError(f"Invalid strategy {self.registration_strategy_e}")
+            # Adjust indices if segment exceeds the series depth
+            if idx_end > max_depth:
+                shift = idx_end - max_depth
+                idx_start -= shift
+                idx_end -= shift
+
+            warped, flow = self.net(series[..., idx_start:idx_end])
+
+            # Assign the result to the corresponding segment
+            warped_series[..., idx_start + shift: idx_end] = warped[..., shift + 1:]
+            flow_series[..., idx_start + shift: idx_end] = flow[..., shift + 1:]
+
+            del warped, flow
+
+        return warped_series, flow_series
 
     def training_step(self, batch, **kwargs: Any) -> float:
-        warped, flow, fixed = self.forward(batch, training=True)
+        warped, flow = self.forward(batch)
 
         loss = 0
-        loss += self._compute_warped_loss(warped, fixed)
+        loss += self._compute_warped_loss(warped)
         loss += self._compute_flow_loss(flow)
         del warped, flow
-
-        if self.identity_loss:
-            max_depth_transmorph: int = self.net.transformer.img_size[-1] - 1
-            in_series = torch.repeat_interleave(fixed, max_depth_transmorph, dim=-1)
-            warped, flow, _ = self.forward(in_series, training=True)
-
-            loss += self._compute_warped_loss(warped, fixed)
-            del warped, flow, in_series
 
         self.log_dict(
             {"train_loss": loss},
@@ -422,7 +197,7 @@ class TransMorphModule(pl.LightningModule):
         warped, flow, fixed = self(batch)
 
         loss = 0
-        loss += self._compute_warped_loss(warped, fixed)
+        loss += self._compute_warped_loss(warped)
         loss += self._compute_flow_loss(flow)
         del warped, flow
 
@@ -461,7 +236,7 @@ class TransMorphModule(pl.LightningModule):
         ssim_var = torch.var(ssim_list)
 
         loss = 0
-        loss += self._compute_warped_loss(warped, fixed)
+        loss += self._compute_warped_loss(warped)
         loss += self._compute_flow_loss(flow)
         del warped, flow, fixed_np, flow_np
 

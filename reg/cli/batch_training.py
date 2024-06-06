@@ -41,16 +41,8 @@ def build_job(job_config, header, body, args):
         job_config["criteria_warped"],
         "--criteria_flow",
         job_config["criteria_flow"],
-        "--registration_strategy",
-        job_config["registration_strategy"],
-        "--registration_target",
-        job_config["registration_target"],
-        "--registration_depth",
-        str(job_config["registration_depth"]),
-        "--registration_stride",
-        str(job_config["registration_stride"]),
-        "--registration_sampling",
-        str(job_config["registration_sampling"]),
+        "--context_length",
+        job_config["context_length"],
         "--optimizer",
         job_config["optimizer"],
         "--learning_rate",
@@ -58,9 +50,6 @@ def build_job(job_config, header, body, args):
         "--output",
         str(config_path),
     ]
-
-    if job_config["identity_loss"]:
-        config_command.append("--identity_loss")
 
     stdout, stderr, return_code = run_process(config_command)
     if return_code != 0:
