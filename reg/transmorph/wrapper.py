@@ -1,5 +1,6 @@
 from enum import Enum
 from typing import Any, Tuple, List, Mapping
+import math
 
 import monai.metrics
 import numpy as np
@@ -125,25 +126,10 @@ class TransMorphModule(pl.LightningModule):
     def _compute_warped_loss(self, warped, fixed) -> float:
         loss = 0.0
 
-        window = 2  # Making it a hyperparameter???
         warped = warped.permute(-1, 0, 1, 2, 3)
-        n = warped.shape[0]
-
         for loss_fn, weight in self.criteria_warped_nnf:
-            neighbourhood_loss = 0.0
-            fixed_loss = 0.0
-
-            fixed_loss += loss_fn(warped[0], fixed[..., 0])
-            fixed_loss += loss_fn(warped[n-1], fixed[..., 0])
-            for i in range(1, n-1):
-                fixed_loss += loss_fn(warped[i], fixed[..., 0])
-                neighbourhood_loss += loss_fn(warped[i + 1], warped[i])
-                neighbourhood_loss += loss_fn(warped[i - 1], warped[i])
-
-            fixed_loss /= n
-            neighbourhood_loss /= n * 2.0 * window
-
-            loss += (fixed_loss + neighbourhood_loss) * weight
+            means = [loss_fn(w, fixed[..., 0]) for w in warped]
+            loss += sum(means) / len(means) * weight
 
         return loss
 
