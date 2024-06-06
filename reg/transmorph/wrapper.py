@@ -194,7 +194,7 @@ class TransMorphModule(pl.LightningModule):
         return loss
 
     def validation_step(self, batch, **kwargs: Any) -> float:
-        warped, flow, fixed = self(batch)
+        warped, flow = self(batch)
 
         loss = 0
         loss += self._compute_warped_loss(warped)
@@ -208,7 +208,15 @@ class TransMorphModule(pl.LightningModule):
         return loss
 
     def test_step(self, batch, **kwargs: Any) -> Mapping[str, Any]:
-        warped, flow, fixed = self(batch)
+        warped, flow = self(batch)
+
+        means = torch.mean(batch, (-2, -3)).view(-1)
+        if means.shape[-1] > 100:
+            means = means[30:]
+        mean_of_means = torch.mean(means)
+        diff = torch.abs(means - mean_of_means)
+        _, i = torch.topk(diff, 1, largest=False)
+        fixed = batch[..., i].view(batch.shape[:-1]).unsqueeze(-1)
 
         fixed_np = fixed.detach().cpu().numpy()[0, :, :, :]
         flow_np = flow.detach().cpu().numpy()[0, :, :, :, :]
