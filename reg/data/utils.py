@@ -58,7 +58,7 @@ def read_mat_data_w_meta(path, start=None, end=None):
     mat = loadmat(path)
     dcm = mat["dcm"]
 
-    if dcm.shape[0] < end:
+    if end is not None and dcm.shape[0] < end:
         end = None
 
     if start and end:
