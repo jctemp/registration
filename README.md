@@ -260,6 +260,20 @@ python -m reg batch --weight_directory test_temporal_dependence temporal_depende
 
 ```
 
+## Temporal dependence only
+
+```shell
+python -m reg generate \
+  --network transmorph \
+  --criteria_warped gncc-1-ncc-1 \
+  --criteria_flow gl2d-1 \
+  --context_length 256 \
+  -o temporal_loss_only_config.toml
+  
+python -m reg batch --weight_directory temporal_loss_only temporal_loss_only_config.toml context_length 32 64 128 256
+
+```
+
 ## Add additional image signal (fourier frequency)
 
 TODO: image will have now two channels
