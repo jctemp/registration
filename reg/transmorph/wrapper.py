@@ -294,11 +294,11 @@ class TransMorphModule(pl.LightningModule):
         for image_bin in range(0, num_bins):
             group = series[..., image_bins == image_bin]
         
-            warped, flow, fixed = self._segment_registration(group, fixed)
+            warped, flow, _ = self._segment_registration(group, fixed)
             warped_series[..., image_bins == image_bin] = warped
             flow_series[..., image_bins == image_bin] = flow
 
-            del warped, flow, fixed
+            del warped, flow
 
         gc.collect()
         torch.cuda.empty_cache()
