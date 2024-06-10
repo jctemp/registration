@@ -175,3 +175,4 @@ model_weights
 model_eval
 
 *.toml
+analysis
