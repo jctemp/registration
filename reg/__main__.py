@@ -83,11 +83,49 @@ def create_parser_generate(subparsers):
     )
 
     parser.add_argument(
-        "--context_length",
+        "--registration_strategy",
+        type=str,
+        default="soreg",
+        help="Strategy for registration, meaning process the series segment-wise or group-wise",
+        choices=["soreg", "goreg"],
+    )
+
+    parser.add_argument(
+        "--registration_target",
+        type=str,
+        default="last",
+        help="The selection process for the target image to which all images will be aligned to",
+        choices=["last", "mean", "min", "max", "random"],
+    )
+
+    parser.add_argument(
+        "--registration_depth",
         type=int,
         default=32,
         help="The temporal dimension size the model can process at once",
-        choices=range(32, 257, 32),
+        choices=range(32, 256, 32),
+    )
+
+    parser.add_argument(
+        "--registration_stride",
+        type=int,
+        default=1,
+        help="The size of subsampling in the temporal dimension",
+        choices=range(1, 8),
+    )
+
+    parser.add_argument(
+        "--registration_sampling",
+        type=int,
+        default=1,
+        help="Sample the series to present single segments to the model",
+        choices=range(0, 9),
+    )
+
+    parser.add_argument(
+        "--identity_loss",
+        action="store_true",
+        help="Set flag to have an identity loss considered",
     )
 
     parser.add_argument(

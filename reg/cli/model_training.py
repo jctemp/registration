@@ -32,7 +32,12 @@ def main(args):
             network=config["network"],
             criteria_warped=config["criteria_warped"],
             criteria_flow=config["criteria_flow"],
-            context_length=config["context_length"],
+            registration_target=config["registration_target"],
+            registration_strategy=config["registration_strategy"],
+            registration_depth=config["registration_depth"],
+            registration_stride=config["registration_stride"],
+            registration_sampling=config["registration_sampling"],
+            identity_loss=config["identity_loss"],
             optimizer=config["optimizer"],
             learning_rate=config["learning_rate"],
         )
@@ -94,7 +99,7 @@ def main(args):
     n_available_cores = 1 if n_available_cores == 0 else n_available_cores
     datamodule = LungDataModule(
         root_dir="/media/agjvc_rad3/_TESTKOLLEKTIV/Daten/Daten",
-        max_series_length=config["context_length"],
+        max_series_length=128,
         split=(0.7, 0.1, 0.2),
         seed=42,
         pin_memory=True,
