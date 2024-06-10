@@ -1,6 +1,6 @@
 from enum import Enum
 from typing import Any, Tuple, List, Mapping
-import math
+import gc
 
 import monai.metrics
 import numpy as np
@@ -254,75 +254,56 @@ class TransMorphModule(pl.LightningModule):
         """
         Group-based registration of a series of images.
         """
-        raise RuntimeError("Function is not properly implemented.")
-        #
-        # # Calculate mean intensities and sort them
-        # image_means = torch.mean(series, (-2, -3)).view(-1)
-        # if series.shape[-1] > 100:
-        #     image_min = torch.min(image_means[50:])
-        #     image_range = torch.max(image_means[50:]) - image_min
-        # else:
-        #     image_min = torch.min(image_means)
-        #     image_range = torch.max(image_means) - image_min
-        #
-        # def compute_image_bin(curr_mean, curr_higher_lim, bin_step, max_bin) -> int:
-        #     bin_index = 0
-        #     while curr_mean >= curr_higher_lim:
-        #         bin_index += 1
-        #         curr_higher_lim += bin_step
-        #         if bin_index == max_bin:
-        #             return max_bin
-        #     return bin_index
-        #
-        # num_bins = 9  # Number of bins (must be odd)
-        # step = image_range / num_bins
-        #
-        # # Assign images to bins
-        # image_bins = torch.tensor(
-        #     [compute_image_bin(image_mean, image_min + step, step, num_bins) for image_mean in image_means],
-        #     device=series.device,
-        # )
-        # # Pre-allocate memory for output series
-        # warped_series = torch.zeros(series.shape, device=series.device)
-        # flow_series = torch.zeros(
-        #     (series.shape[0], 2, *(series.shape[2:])), device=series.device
-        # )
-        #
-        # # Intragroup processing
-        # avg_group_images = []
-        # series_fixed = None
-        # for image_bin in range(0, num_bins):
-        #     group = series[..., image_bins == image_bin]
-        #
-        #     warped, flow, fixed = self._segment_registration(group)
-        #     if image_bin == len(avg_group_images) // 2:
-        #         series_fixed = fixed
-        #
-        #     flow_series[..., image_bins == image_bin] = flow
-        #     avg_group_images.append(torch.mean(warped, dim=-1))
-        #
-        #     del warped, flow, fixed
-        #
-        # # Intergroup processing
-        # group_series = torch.cat([t.unsqueeze(-1) for t in avg_group_images], dim=-1)
-        # warped, flow, fixed = self._segment_registration(group_series)
-        #
-        # for image_bin in range(0, num_bins):
-        #     group = flow_series[..., image_bins == image_bin]
-        #     for i in range(group.shape[-1]):
-        #         group[..., i] += (flow[..., image_bin])
-        # del warped, flow, fixed, group_series, avg_group_images, image_means, image_bins
-        #
-        # # Apply newly computed warp
-        # for k in range(0, series.shape[-1], 32):
-        #     warped_series_seg = self.stn(series[..., k:k + 32], flow_series[..., k:k + 32])
-        #     warped_series[..., k:k + 32] = warped_series_seg
-        #     del warped_series_seg
-        #
-        # gc.collect()
-        # torch.cuda.empty_cache()
-        #
-        # return warped_series, flow_series, series_fixed
+        
+        # Calculate mean intensities and sort them
+        image_means = torch.mean(series, (-2, -3)).view(-1)
+        if series.shape[-1] > 100:
+            image_min = torch.min(image_means[50:])
+            image_range = torch.max(image_means[50:]) - image_min
+        else:
+            image_min = torch.min(image_means)
+            image_range = torch.max(image_means) - image_min
+        
+        def compute_image_bin(curr_mean, curr_higher_lim, bin_step, max_bin) -> int:
+            bin_index = 0
+            while curr_mean >= curr_higher_lim:
+                bin_index += 1
+                curr_higher_lim += bin_step
+                if bin_index == max_bin:
+                    return max_bin
+            return bin_index
+        
+        num_bins = 9  # Number of bins (must be odd)
+        step = image_range / num_bins
+        
+        # Assign images to bins
+        image_bins = torch.tensor(
+            [compute_image_bin(image_mean, image_min + step, step, num_bins) for image_mean in image_means],
+            device=series.device,
+        )
+        # Pre-allocate memory for output series
+        warped_series = torch.zeros(series.shape, device=series.device)
+        flow_series = torch.zeros(
+            (series.shape[0], 2, *(series.shape[2:])), device=series.device
+        )
+
+        # Compute series fixed image
+        fixed = self.extract_fixed_image(series).unsqueeze(-1)
+
+        # Intragroup processing
+        for image_bin in range(0, num_bins):
+            group = series[..., image_bins == image_bin]
+        
+            warped, flow, fixed = self._segment_registration(group, fixed)
+            warped_series[..., image_bins == image_bin] = warped
+            flow_series[..., image_bins == image_bin] = flow
+
+            del warped, flow, fixed
+
+        gc.collect()
+        torch.cuda.empty_cache()
+        
+        return warped_series, flow_series, fixed
 
     def update_hyperparameters(self):
         self.save_hyperparameters(
