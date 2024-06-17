@@ -269,11 +269,11 @@ class TransMorphModule(pl.LightningModule):
             while curr_mean >= curr_higher_lim:
                 bin_index += 1
                 curr_higher_lim += bin_step
-                if bin_index == max_bin:
-                    return max_bin
+                if bin_index == max_bin - 1:
+                    return max_bin - 1
             return bin_index
         
-        num_bins = 9  # Number of bins (must be odd)
+        num_bins = 9
         step = image_range / num_bins
         
         # Assign images to bins
